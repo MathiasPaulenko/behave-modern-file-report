@@ -47,13 +47,16 @@ jobs:
       - name: Check artifacts
         run: twine check dist/*
 
-      - name: Check if tag exists
+      - name: Check tag status
         id: tag_check
         run: |
-          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          TAG="v${{ steps.version.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "tag_ref=$(git rev-parse "$TAG^{commit}")" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "tag_ref=" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create Git tag
@@ -65,11 +68,11 @@ jobs:
           git push origin "v${{ steps.version.outputs.version }}"
 
       - name: Publish to PyPI
-        if: steps.tag_check.outputs.exists == 'false'
+        if: steps.tag_check.outputs.exists == 'false' || steps.tag_check.outputs.tag_ref == github.sha
         uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Create GitHub Release
-        if: always() && steps.tag_check.outputs.exists == 'false'
+        if: always() && (steps.tag_check.outputs.exists == 'false' || steps.tag_check.outputs.tag_ref == github.sha)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ steps.version.outputs.version }}"
