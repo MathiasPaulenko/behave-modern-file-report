@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-22
+
+### Changed
+
+- Release pipeline now uses Trusted Publishing (OIDC) and auto-creates the git tag, matching the `behave-comments` project.
+- GitHub repository description and topics updated.
+
 ## [1.1.0] - 2026-07-22
 
 ### Fixed
