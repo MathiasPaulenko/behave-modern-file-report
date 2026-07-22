@@ -69,5 +69,13 @@ venv.bak/
 .DS_Store
 Thumbs.db
 
-# Project-specific reference folder (not for public release)
+# Tool caches
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# Local reports generated during dev
+examples/*/report.txt
+examples/*/report.docx
+examples/*/report.pdf
 ref/
