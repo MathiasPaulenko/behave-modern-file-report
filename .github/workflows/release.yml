@@ -1,85 +1,179 @@
 name: Release
 
+# Fully automatic release pipeline.
+#
+# Trigger:
+#   - Every push to `main` that touches the package, pyproject.toml or this workflow.
+#   - Manual via the "Run workflow" button.
+#
+# Behaviour:
+#   1. Reads the version from `behave_modern_file_reports/__init__.py`.
+#   2. If a git tag `vX.Y.Z` for that version already exists -> exits cleanly
+#      (nothing to do, no release).
+#   3. Otherwise: creates and pushes the tag, builds sdist + wheel,
+#      publishes to PyPI via Trusted Publishing, and creates a GitHub Release
+#      with auto-generated notes.
+#
+# To cut a new release: bump `__version__` in __init__.py, commit, push. Done.
+
 on:
   push:
     branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "behave_modern_file_reports/**"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
 
-permissions:
-  contents: write
-  id-token: write
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build and publish release
+  # ----------------------------------------------------------------------
+  # 1. Decide whether we need to release at all.
+  # ----------------------------------------------------------------------
+  detect:
+    name: Detect version bump
     runs-on: ubuntu-latest
-    environment: release
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      tag: ${{ steps.read.outputs.tag }}
+      should_release: ${{ steps.check.outputs.should_release }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install system deps for WeasyPrint
+      - id: read
+        name: Read version from package
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libpango1.0-dev libgdk-pixbuf2.0-dev libffi-dev shared-mime-info
-
-      - name: Install build tools
-        run: pip install build twine
-
-      - name: Install package for version detection
-        run: pip install -e ".[all]"
-
-      - name: Detect version
-        id: version
-        run: |
-          VERSION=$(python -c "import behave_modern_file_reports; print(behave_modern_file_reports.__version__)")
+          VERSION=$(python -c "import re, pathlib; print(re.search(r\"__version__ = ['\\\"]([^'\\\"]+)['\\\"]\", pathlib.Path('behave_modern_file_reports/__init__.py').read_text()).group(1))")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION"    >> "$GITHUB_OUTPUT"
+          echo "Project version: $VERSION"
 
-      - name: Build
-        run: python -m build
-
-      - name: Check artifacts
-        run: twine check dist/*
-
-      - name: Check tag status
-        id: tag_check
+      - id: check
+        name: Check whether the tag already exists
         run: |
-          TAG="v${{ steps.version.outputs.version }}"
-          HEAD_SHA="${{ github.sha }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            TAG_REF=$(git rev-parse "$TAG^{commit}" | tr -d '\n')
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "tag_ref=$TAG_REF" >> "$GITHUB_OUTPUT"
-            echo "Tag $TAG exists and points to $TAG_REF (HEAD is $HEAD_SHA)"
+          TAG="${{ steps.read.outputs.tag }}"
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists - nothing to release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "tag_ref=" >> "$GITHUB_OUTPUT"
-            echo "Tag $TAG does not exist"
+            echo "Tag $TAG is new - will release."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create Git tag
-        if: ${{ steps.tag_check.outputs.exists == 'false' }}
+  # ----------------------------------------------------------------------
+  # 2. Tag the release commit (only if version was bumped).
+  # ----------------------------------------------------------------------
+  tag:
+    name: Create git tag
+    needs: detect
+    if: needs.detect.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          TAG="${{ needs.detect.outputs.tag }}"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+  # ----------------------------------------------------------------------
+  # 3. Build the distribution artifacts.
+  # ----------------------------------------------------------------------
+  build:
+    name: Build distribution
+    needs: [detect, tag]
+    if: needs.detect.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.detect.outputs.tag }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build sdist + wheel
+        run: python -m build
+
+      - name: Validate distributions
+        run: twine check dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # ----------------------------------------------------------------------
+  # 4. Publish to PyPI via OIDC Trusted Publishing (no tokens).
+  # ----------------------------------------------------------------------
+  publish:
+    name: Publish to PyPI
+    needs: [detect, build]
+    if: needs.detect.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/behave-modern-file-reports
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
       - name: Publish to PyPI
-        if: ${{ steps.tag_check.outputs.exists == 'false' || steps.tag_check.outputs.tag_ref == github.sha }}
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
 
-      - name: Create GitHub Release
-        if: ${{ always() && (steps.tag_check.outputs.exists == 'false' || steps.tag_check.outputs.tag_ref == github.sha) }}
+  # ----------------------------------------------------------------------
+  # 5. Create the GitHub Release with auto-generated notes.
+  # ----------------------------------------------------------------------
+  github-release:
+    name: Create GitHub Release
+    needs: [detect, publish]
+    if: needs.detect.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ steps.version.outputs.version }}"
-          name: "v${{ steps.version.outputs.version }}"
+          tag_name: ${{ needs.detect.outputs.tag }}
+          name: ${{ needs.detect.outputs.tag }}
           generate_release_notes: true
+          overwrite_files: true
           files: dist/*
