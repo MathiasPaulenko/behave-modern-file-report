@@ -49,7 +49,7 @@ class Collector:
         """
         self._run_id: str = generate_id("run")
         self._start_time: str = now_iso()
-        self._start_monotonic: float = time.monotonic()
+        self._start_perf: float = time.perf_counter()
         self._features: list[FeatureSummary] = []
         self._current_feature: FeatureSummary | None = None
         self._current_scenario: ScenarioResult | None = None
@@ -77,7 +77,7 @@ class Collector:
             tags=tags,
             location=location,
         )
-        self._feature_start = time.monotonic()
+        self._feature_start = time.perf_counter()
 
     def start_background(self, behave_background: Any) -> None:
         """Begin tracking a feature's background section.
@@ -133,7 +133,7 @@ class Collector:
         )
         if self._current_feature is not None and self._current_feature.background is not None:
             self._current_scenario.background = self._current_feature.background
-        self._scenario_start = time.monotonic()
+        self._scenario_start = time.perf_counter()
 
     def start_step(self, behave_step: Any) -> None:
         """Queue a step for tracking within the current scenario.
@@ -213,7 +213,7 @@ class Collector:
             step.status = STATUS_SKIPPED
             self._current_scenario.steps.append(step)
 
-        self._current_scenario.duration = time.monotonic() - self._scenario_start
+        self._current_scenario.duration = time.perf_counter() - self._scenario_start
         self._current_scenario.status = _derive_scenario_status(self._current_scenario)
         if self._current_scenario.status == STATUS_FAILED:
             self._current_scenario.error = _first_failed_error(self._current_scenario)
@@ -225,7 +225,7 @@ class Collector:
         if self._current_feature is None:
             return
 
-        self._current_feature.duration = time.monotonic() - self._feature_start
+        self._current_feature.duration = time.perf_counter() - self._feature_start
         self._features.append(self._current_feature)
         self._current_feature = None
 
@@ -237,7 +237,7 @@ class Collector:
             and a generated run ID.
         """
         end_time = now_iso()
-        duration = time.monotonic() - self._start_monotonic
+        duration = time.perf_counter() - self._start_perf
 
         return RunSummary(
             run_id=self._run_id,

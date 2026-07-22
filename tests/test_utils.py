@@ -75,7 +75,7 @@ def test_safe_tags_other() -> None:
 
 def test_monotonic_seconds() -> None:
     """monotonic_seconds returns a positive elapsed time."""
-    start = time.monotonic()
+    start = time.perf_counter()
     time.sleep(0.001)
     elapsed = monotonic_seconds(start)
     assert elapsed > 0.0

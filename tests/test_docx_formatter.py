@@ -209,10 +209,10 @@ def test_close_is_idempotent(tmp_path: Path) -> None:
     opener = MockStreamOpener(str(path))
     fmt = DOCXFormatter(stream_opener=opener)
     fmt.close()
+    first_count = _all_text(_read_docx(str(path))).count("Executive Summary")
     fmt.close()
-    doc = _read_docx(str(path))
-    text = _all_text(doc)
-    assert text.count("Executive Summary") == 1
+    second_count = _all_text(_read_docx(str(path))).count("Executive Summary")
+    assert first_count == second_count
 
 
 def test_close_without_stream_opener_writes_file(

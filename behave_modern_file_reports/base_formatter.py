@@ -186,7 +186,7 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         if not logo_path.is_file():
             return
         mime, _ = mimetypes.guess_type(str(logo_path))
-        if mime is None:
+        if mime is None or not mime.startswith("image/"):
             mime = "image/png"
         data = logo_path.read_bytes()
         encoded = base64.b64encode(data).decode("ascii")

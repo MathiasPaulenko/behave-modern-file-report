@@ -93,15 +93,15 @@ def safe_tags(value: object | None) -> list[str]:
 
 
 def monotonic_seconds(start: float) -> float:
-    """Return elapsed seconds since ``start`` using a monotonic clock.
+    """Return elapsed seconds since ``start`` using a high-resolution monotonic clock.
 
     Args:
-        start: A ``time.monotonic()`` reference value.
+        start: A ``time.perf_counter()`` reference value.
 
     Returns:
         Elapsed seconds as a float.
     """
-    return time.monotonic() - start
+    return time.perf_counter() - start
 
 
 def now_iso() -> str:
