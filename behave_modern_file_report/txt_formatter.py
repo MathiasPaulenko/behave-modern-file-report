@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from behave_modern_file_reports.base_formatter import BaseFileFormatter
-from behave_modern_file_reports.models import ReportOptions, RunSummary
-from behave_modern_file_reports.txt_writer import TXTWriter
+from behave_modern_file_report.base_formatter import BaseFileFormatter
+from behave_modern_file_report.models import ReportOptions, RunSummary
+from behave_modern_file_report.txt_writer import TXTWriter
 
 
 class TXTFormatter(BaseFileFormatter):

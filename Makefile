@@ -15,7 +15,7 @@ lint:
 	ruff check .
 
 typecheck:
-	mypy behave_modern_file_reports tests
+	mypy behave_modern_file_report tests
 
 format:
 	ruff check --fix .

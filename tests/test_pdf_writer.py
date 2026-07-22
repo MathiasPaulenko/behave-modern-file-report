@@ -1,4 +1,4 @@
-"""Tests for behave_modern_file_reports.pdf_writer."""
+"""Tests for behave_modern_file_report.pdf_writer."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.models import (
     Attachment,
     Background,
     Environment,
@@ -17,7 +17,7 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.pdf_writer import PDFWriter, ReportLabWriter, _format_duration, _rl
+from behave_modern_file_report.pdf_writer import PDFWriter, ReportLabWriter, _format_duration, _rl
 
 # ---------------------------------------------------------------------------
 # Helpers

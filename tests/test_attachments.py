@@ -1,4 +1,4 @@
-"""Tests for behave_modern_file_reports.attachments and attachment buffer."""
+"""Tests for behave_modern_file_report.attachments and attachment buffer."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from behave_modern_file_reports.attachments import (
+from behave_modern_file_report.attachments import (
     _bytes_to_base64,
     _capture_screenshot,
     _check_size,
@@ -27,13 +27,13 @@ from behave_modern_file_reports.attachments import (
     attach_screenshot,
     attach_text,
 )
-from behave_modern_file_reports.attachments import (
+from behave_modern_file_report.attachments import (
     log as attach_log,
 )
-from behave_modern_file_reports.base_formatter import BaseFileFormatter
-from behave_modern_file_reports.models import Attachment
-from behave_modern_file_reports.pdf_formatter import PDFFormatter
-from behave_modern_file_reports.txt_formatter import TXTFormatter
+from behave_modern_file_report.base_formatter import BaseFileFormatter
+from behave_modern_file_report.models import Attachment
+from behave_modern_file_report.pdf_formatter import PDFFormatter
+from behave_modern_file_report.txt_formatter import TXTFormatter
 
 # ---------------------------------------------------------------------------
 # Mock helpers
@@ -961,32 +961,32 @@ def test_log_multiple_messages() -> None:
 
 
 def test_package_exports_attach_screenshot() -> None:
-    import behave_modern_file_reports as pkg
+    import behave_modern_file_report as pkg
     assert hasattr(pkg, "attach_screenshot")
 
 
 def test_package_exports_attach_file() -> None:
-    import behave_modern_file_reports as pkg
+    import behave_modern_file_report as pkg
     assert hasattr(pkg, "attach_file")
 
 
 def test_package_exports_attach_text() -> None:
-    import behave_modern_file_reports as pkg
+    import behave_modern_file_report as pkg
     assert hasattr(pkg, "attach_text")
 
 
 def test_package_exports_attach_json() -> None:
-    import behave_modern_file_reports as pkg
+    import behave_modern_file_report as pkg
     assert hasattr(pkg, "attach_json")
 
 
 def test_package_exports_log() -> None:
-    import behave_modern_file_reports as pkg
+    import behave_modern_file_report as pkg
     assert hasattr(pkg, "log")
 
 
 def test_package_all_contains_public_api() -> None:
-    import behave_modern_file_reports as pkg
+    import behave_modern_file_report as pkg
     assert "attach_screenshot" in pkg.__all__
     assert "attach_file" in pkg.__all__
     assert "attach_text" in pkg.__all__

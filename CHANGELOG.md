@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-07-22
+
+### Changed
+
+- Renamed project and repository from `behave-modern-file-reports` to `behave-modern-file-report` (singular) to match the PyPI project name.
+- Renamed the Python package from `behave_modern_file_reports` to `behave_modern_file_report`.
+
 ## [1.1.1] - 2026-07-22
 
 ### Changed

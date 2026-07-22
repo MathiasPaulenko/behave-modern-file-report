@@ -25,7 +25,7 @@ from docx.shared import Cm, Pt, RGBColor
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.models import (
     Background,
     Environment,
     FeatureSummary,
@@ -34,7 +34,7 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.utils import (
+from behave_modern_file_report.utils import (
     STATUS_COLORS,
     STATUS_FAILED,
     STATUS_LABELS,

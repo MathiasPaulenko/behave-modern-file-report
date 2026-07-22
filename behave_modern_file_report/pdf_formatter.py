@@ -5,9 +5,9 @@ Registered as ``behave-modern-pdf`` in Behave's formatter entry points.
 
 from __future__ import annotations
 
-from behave_modern_file_reports.base_formatter import BaseFileFormatter
-from behave_modern_file_reports.models import ReportOptions, RunSummary
-from behave_modern_file_reports.pdf_writer import PDFWriter
+from behave_modern_file_report.base_formatter import BaseFileFormatter
+from behave_modern_file_report.models import ReportOptions, RunSummary
+from behave_modern_file_report.pdf_writer import PDFWriter
 
 
 class PDFFormatter(BaseFileFormatter):

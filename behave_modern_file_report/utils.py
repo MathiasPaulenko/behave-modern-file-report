@@ -1,4 +1,4 @@
-"""Pure utility helpers for behave-modern-file-reports.
+"""Pure utility helpers for behave-modern-file-report.
 
 Zero external dependencies. These helpers cover status normalization, safe
 string conversions, timing, identifier generation, and parsing of

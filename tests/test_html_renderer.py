@@ -1,11 +1,11 @@
-"""Tests for behave_modern_file_reports.html_renderer."""
+"""Tests for behave_modern_file_report.html_renderer."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from behave_modern_file_reports.html_renderer import render_html
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.html_renderer import render_html
+from behave_modern_file_report.models import (
     Attachment,
     Background,
     Environment,
@@ -632,7 +632,7 @@ def test_logo_b64_empty_by_default(tmp_path: Path) -> None:
 
 def test_resolve_template_path_custom_file(tmp_path: Path) -> None:
     """_resolve_template_path returns custom file location."""
-    from behave_modern_file_reports.html_renderer import _resolve_template_path
+    from behave_modern_file_report.html_renderer import _resolve_template_path
     template = tmp_path / "custom.html"
     template.write_text("<html></html>")
     opts = ReportOptions(template=str(template))
@@ -644,7 +644,7 @@ def test_resolve_template_path_custom_file(tmp_path: Path) -> None:
 
 def test_resolve_template_path_custom_dir(tmp_path: Path) -> None:
     """_resolve_template_path returns custom directory location."""
-    from behave_modern_file_reports.html_renderer import _resolve_template_path
+    from behave_modern_file_report.html_renderer import _resolve_template_path
     opts = ReportOptions(template=str(tmp_path))
     tdir, tname, cname = _resolve_template_path(opts, None)
     assert tdir == tmp_path
@@ -654,7 +654,7 @@ def test_resolve_template_path_custom_dir(tmp_path: Path) -> None:
 
 def test_resolve_template_path_nonexistent() -> None:
     """_resolve_template_path falls back for non-existent path."""
-    from behave_modern_file_reports.html_renderer import _resolve_template_path
+    from behave_modern_file_report.html_renderer import _resolve_template_path
     opts = ReportOptions(template="/nonexistent/template.html")
     tdir, tname, cname = _resolve_template_path(opts, None)
     assert tname == "default.html"
@@ -662,7 +662,7 @@ def test_resolve_template_path_nonexistent() -> None:
 
 def test_resolve_template_path_empty() -> None:
     """_resolve_template_path returns defaults when template is empty."""
-    from behave_modern_file_reports.html_renderer import _resolve_template_path
+    from behave_modern_file_report.html_renderer import _resolve_template_path
     opts = ReportOptions()
     tdir, tname, cname = _resolve_template_path(opts, None)
     assert tname == "default.html"

@@ -3,7 +3,7 @@
 Provides internal helpers (``_find_formatter``, ``_make_attachment_from_*``)
 plus the **public API** for use from ``environment.py``::
 
-    from behave_modern_file_reports import attach_screenshot, log
+    from behave_modern_file_report import attach_screenshot, log
 
     def after_step(context, step):
         if step.status == "failed":
@@ -27,7 +27,7 @@ import mimetypes
 from pathlib import Path
 from typing import Any
 
-from behave_modern_file_reports.models import Attachment
+from behave_modern_file_report.models import Attachment
 
 
 def _find_formatter(context: Any) -> Any:

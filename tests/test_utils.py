@@ -1,4 +1,4 @@
-"""Tests for behave_modern_file_reports.utils."""
+"""Tests for behave_modern_file_report.utils."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from behave_modern_file_reports import utils
-from behave_modern_file_reports.utils import (
+from behave_modern_file_report import utils
+from behave_modern_file_report.utils import (
     STATUS_FAILED,
     STATUS_PASSED,
     STATUS_SKIPPED,

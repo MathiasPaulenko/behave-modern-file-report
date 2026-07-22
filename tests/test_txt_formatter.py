@@ -1,4 +1,4 @@
-"""Tests for behave_modern_file_reports.txt_formatter."""
+"""Tests for behave_modern_file_report.txt_formatter."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ from typing import Any, cast
 
 import pytest
 
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.models import (
     FeatureSummary,
     RunSummary,
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.txt_formatter import TXTFormatter
+from behave_modern_file_report.txt_formatter import TXTFormatter
 
 # ---------------------------------------------------------------------------
 # Mock helpers

@@ -1,4 +1,4 @@
-"""Domain models for behave-modern-file-reports.
+"""Domain models for behave-modern-file-report.
 
 Pure dataclasses with ``slots=True`` and zero external dependencies.
 """
@@ -9,7 +9,7 @@ import contextlib
 import re
 from dataclasses import dataclass, field
 
-from behave_modern_file_reports.utils import (
+from behave_modern_file_report.utils import (
     STATUS_FAILED,
     STATUS_PASSED,
     STATUS_SKIPPED,

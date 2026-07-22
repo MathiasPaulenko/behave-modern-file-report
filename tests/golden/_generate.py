@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import io
 
-from behave_modern_file_reports.html_renderer import render_html
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.html_renderer import render_html
+from behave_modern_file_report.models import (
     Environment,
     ErrorInfo,
     FeatureSummary,
@@ -17,7 +17,7 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.txt_writer import TXTWriter
+from behave_modern_file_report.txt_writer import TXTWriter
 
 
 def _make_run() -> RunSummary:

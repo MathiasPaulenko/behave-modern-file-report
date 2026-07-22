@@ -1,1 +1,1 @@
-"""Tests for behave-modern-file-reports."""
+"""Tests for behave-modern-file-report."""

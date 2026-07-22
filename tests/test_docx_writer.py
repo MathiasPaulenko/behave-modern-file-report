@@ -1,4 +1,4 @@
-"""Tests for behave_modern_file_reports.docx_writer."""
+"""Tests for behave_modern_file_report.docx_writer."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from typing import Any
 
 from docx.shared import RGBColor
 
-from behave_modern_file_reports.docx_writer import DOCXWriter
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.docx_writer import DOCXWriter
+from behave_modern_file_report.models import (
     Attachment,
     Background,
     Environment,

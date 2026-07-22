@@ -7,7 +7,7 @@ name: Release
 #   - Manual via the "Run workflow" button.
 #
 # Behaviour:
-#   1. Reads the version from `behave_modern_file_reports/__init__.py`.
+#   1. Reads the version from `behave_modern_file_report/__init__.py`.
 #   2. If a git tag `vX.Y.Z` for that version already exists -> exits cleanly
 #      (nothing to do, no release).
 #   3. Otherwise: creates and pushes the tag, builds sdist + wheel,
@@ -21,7 +21,7 @@ on:
     branches: [main]
     paths:
       - "pyproject.toml"
-      - "behave_modern_file_reports/**"
+      - "behave_modern_file_report/**"
       - ".github/workflows/release.yml"
   workflow_dispatch:
 
@@ -52,7 +52,7 @@ jobs:
       - id: read
         name: Read version from package
         run: |
-          VERSION=$(python -c "import re, pathlib; print(re.search(r\"__version__ = ['\\\"]([^'\\\"]+)['\\\"]\", pathlib.Path('behave_modern_file_reports/__init__.py').read_text()).group(1))")
+          VERSION=$(python -c "import re, pathlib; print(re.search(r\"__version__ = ['\\\"]([^'\\\"]+)['\\\"]\", pathlib.Path('behave_modern_file_report/__init__.py').read_text()).group(1))")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION"    >> "$GITHUB_OUTPUT"
           echo "Project version: $VERSION"
@@ -139,7 +139,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/behave-modern-file-reports
+      url: https://pypi.org/p/behave-modern-file-report
     permissions:
       id-token: write
     steps:

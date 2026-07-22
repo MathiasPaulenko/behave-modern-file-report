@@ -5,9 +5,9 @@ Registered as ``behave-modern-docx`` in Behave's formatter entry points.
 
 from __future__ import annotations
 
-from behave_modern_file_reports.base_formatter import BaseFileFormatter
-from behave_modern_file_reports.docx_writer import DOCXWriter
-from behave_modern_file_reports.models import ReportOptions, RunSummary
+from behave_modern_file_report.base_formatter import BaseFileFormatter
+from behave_modern_file_report.docx_writer import DOCXWriter
+from behave_modern_file_report.models import ReportOptions, RunSummary
 
 
 class DOCXFormatter(BaseFileFormatter):

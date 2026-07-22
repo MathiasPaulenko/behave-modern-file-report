@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "behave-modern-file-reports"
+name = "behave-modern-file-report"
 dynamic = ["version"]
 description = "Document-style report formatters for Behave BDD (PDF, DOCX, TXT)."
 readme = "README.md"
@@ -37,7 +37,7 @@ pdf = [
 ]
 docx = ["python-docx>=1.1"]
 dev = [
-    "behave-modern-file-reports[all]",
+    "behave-modern-file-report[all]",
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "ruff>=0.5",
@@ -46,29 +46,29 @@ dev = [
     "twine>=5.0",
 ]
 all = [
-    "behave-modern-file-reports[behave]",
-    "behave-modern-file-reports[pdf]",
-    "behave-modern-file-reports[docx]",
+    "behave-modern-file-report[behave]",
+    "behave-modern-file-report[pdf]",
+    "behave-modern-file-report[docx]",
 ]
 
 [project.entry-points."behave.formatters"]
-behave-modern-pdf = "behave_modern_file_reports.pdf_formatter:PDFFormatter"
-behave-modern-docx = "behave_modern_file_reports.docx_formatter:DOCXFormatter"
-behave-modern-txt = "behave_modern_file_reports.txt_formatter:TXTFormatter"
+behave-modern-pdf = "behave_modern_file_report.pdf_formatter:PDFFormatter"
+behave-modern-docx = "behave_modern_file_report.docx_formatter:DOCXFormatter"
+behave-modern-txt = "behave_modern_file_report.txt_formatter:TXTFormatter"
 
 [project.urls]
-Homepage = "https://github.com/MathiasPaulenko/behave-modern-file-reports"
-Documentation = "https://github.com/MathiasPaulenko/behave-modern-file-reports#readme"
-Repository = "https://github.com/MathiasPaulenko/behave-modern-file-reports"
-Issues = "https://github.com/MathiasPaulenko/behave-modern-file-reports/issues"
-Changelog = "https://github.com/MathiasPaulenko/behave-modern-file-reports/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/MathiasPaulenko/behave-modern-file-report"
+Documentation = "https://github.com/MathiasPaulenko/behave-modern-file-report#readme"
+Repository = "https://github.com/MathiasPaulenko/behave-modern-file-report"
+Issues = "https://github.com/MathiasPaulenko/behave-modern-file-report/issues"
+Changelog = "https://github.com/MathiasPaulenko/behave-modern-file-report/blob/main/CHANGELOG.md"
 
 [tool.hatch.version]
-path = "behave_modern_file_reports/__init__.py"
+path = "behave_modern_file_report/__init__.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/behave_modern_file_reports",
+    "/behave_modern_file_report",
     "/tests",
     "/ref",
     "/README.md",
@@ -77,7 +77,7 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["behave_modern_file_reports"]
+packages = ["behave_modern_file_report"]
 
 [tool.ruff]
 target-version = "py311"
@@ -115,14 +115,14 @@ markers = [
 ]
 addopts = [
     "--strict-markers",
-    "--cov=behave_modern_file_reports",
+    "--cov=behave_modern_file_report",
     "--cov-report=term-missing",
     "--cov-report=xml",
     "--cov-fail-under=90",
 ]
 
 [tool.coverage.run]
-source = ["behave_modern_file_reports"]
+source = ["behave_modern_file_report"]
 branch = true
 omit = [
     "*/tests/*",

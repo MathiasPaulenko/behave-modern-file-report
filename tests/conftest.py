@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.models import (
     Attachment,
     Background,
     Environment,
@@ -18,7 +18,7 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.utils import STATUS_PASSED
+from behave_modern_file_report.utils import STATUS_PASSED
 
 
 @pytest.fixture

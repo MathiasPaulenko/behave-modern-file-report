@@ -16,8 +16,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from behave_modern_file_reports.models import ReportOptions, RunSummary
-from behave_modern_file_reports.utils import STATUS_ICONS, format_duration
+from behave_modern_file_report.models import ReportOptions, RunSummary
+from behave_modern_file_report.utils import STATUS_ICONS, format_duration
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 

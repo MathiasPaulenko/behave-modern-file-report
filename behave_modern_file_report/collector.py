@@ -11,7 +11,7 @@ import time
 from collections import deque
 from typing import Any
 
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.models import (
     Background,
     Environment,
     ErrorInfo,
@@ -20,7 +20,7 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.utils import (
+from behave_modern_file_report.utils import (
     STATUS_FAILED,
     STATUS_PASSED,
     STATUS_SKIPPED,

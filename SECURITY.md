@@ -26,4 +26,4 @@ If you discover a security vulnerability, please report it responsibly:
 
 ## Scope
 
-This policy applies to the `behave-modern-file-reports` package and its source code. Vulnerabilities in third-party dependencies (e.g., `weasyprint`, `python-docx`, `reportlab`, `behave`) should be reported to their respective maintainers.
+This policy applies to the `behave-modern-file-report` package and its source code. Vulnerabilities in third-party dependencies (e.g., `weasyprint`, `python-docx`, `reportlab`, `behave`) should be reported to their respective maintainers.

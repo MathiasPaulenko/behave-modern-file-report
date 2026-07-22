@@ -1,4 +1,4 @@
-# Contributing to behave-modern-file-reports
+# Contributing to behave-modern-file-report
 
 Thank you for your interest in contributing! This document covers everything you need to get started.
 
@@ -11,8 +11,8 @@ Thank you for your interest in contributing! This document covers everything you
 ## Quick Start
 
 ```bash
-git clone https://github.com/MathiasPaulenko/behave-modern-file-reports.git
-cd behave-modern-file-reports
+git clone https://github.com/MathiasPaulenko/behave-modern-file-report.git
+cd behave-modern-file-report
 pip install -e ".[dev,pdf,docx]"
 pre-commit install
 ```
@@ -55,7 +55,7 @@ make test          # pytest with verbose output
 Or run everything at once:
 
 ```bash
-ruff check . && ruff format --check . && mypy behave_modern_file_reports tests && python -m pytest tests/ -v --cov=behave_modern_file_reports --cov-fail-under=100
+ruff check . && ruff format --check . && mypy behave_modern_file_report tests && python -m pytest tests/ -v --cov=behave_modern_file_report --cov-fail-under=100
 ```
 
 ### 4. Commit your changes
@@ -111,7 +111,7 @@ make test
 For coverage details:
 
 ```bash
-python -m pytest tests/ -v --cov=behave_modern_file_reports --cov-report=term-missing
+python -m pytest tests/ -v --cov=behave_modern_file_report --cov-report=term-missing
 ```
 
 Coverage must stay at 100%. If you add code, add tests.
@@ -119,7 +119,7 @@ Coverage must stay at 100%. If you add code, add tests.
 ## Project Structure
 
 ```text
-behave_modern_file_reports/
+behave_modern_file_report/
     __init__.py          # Public API exports
     collector.py         # Behave event -> RunSummary
     models.py            # Pure dataclasses (no external deps)
@@ -152,11 +152,11 @@ examples/
 
 Releases are automated. To cut a new release:
 
-1. Bump the version in `behave_modern_file_reports/__init__.py`
+1. Bump the version in `behave_modern_file_report/__init__.py`
 2. Update `CHANGELOG.md` with the new version and changes
 3. Commit and push to `main`
 4. The release workflow handles tagging, PyPI publishing, and GitHub Release creation automatically
 
 ## Questions?
 
-Feel free to open a [Discussion](https://github.com/MathiasPaulenko/behave-modern-file-reports/discussions) or an issue.
+Feel free to open a [Discussion](https://github.com/MathiasPaulenko/behave-modern-file-report/discussions) or an issue.

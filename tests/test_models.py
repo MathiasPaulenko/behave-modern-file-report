@@ -1,4 +1,4 @@
-"""Tests for behave_modern_file_reports.models."""
+"""Tests for behave_modern_file_report.models."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.models import (
     Attachment,
     Background,
     Environment,

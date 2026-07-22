@@ -1,6 +1,6 @@
 """Document-style report formatters for Behave BDD."""
 
-from behave_modern_file_reports.attachments import (
+from behave_modern_file_report.attachments import (
     attach_file,
     attach_json,
     attach_screenshot,
@@ -8,7 +8,7 @@ from behave_modern_file_reports.attachments import (
     log,
 )
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 __all__ = [
     "__version__",

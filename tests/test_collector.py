@@ -1,11 +1,11 @@
-"""Tests for behave_modern_file_reports.collector."""
+"""Tests for behave_modern_file_report.collector."""
 
 from __future__ import annotations
 
 import time
 from types import SimpleNamespace
 
-from behave_modern_file_reports.collector import Collector
+from behave_modern_file_report.collector import Collector
 
 
 def _mock_feature(

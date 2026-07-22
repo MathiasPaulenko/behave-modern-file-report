@@ -1,10 +1,10 @@
-"""Tests for behave_modern_file_reports.txt_writer."""
+"""Tests for behave_modern_file_report.txt_writer."""
 
 from __future__ import annotations
 
 import io
 
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.models import (
     Attachment,
     Background,
     Environment,
@@ -15,7 +15,7 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.txt_writer import TXTWriter
+from behave_modern_file_report.txt_writer import TXTWriter
 
 # ---------------------------------------------------------------------------
 # Helpers

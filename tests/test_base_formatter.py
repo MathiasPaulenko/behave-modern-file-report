@@ -1,4 +1,4 @@
-"""Tests for behave_modern_file_reports.base_formatter."""
+"""Tests for behave_modern_file_report.base_formatter."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from typing import Any
 
 import pytest
 
-from behave_modern_file_reports.base_formatter import BaseFileFormatter
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.base_formatter import BaseFileFormatter
+from behave_modern_file_report.models import (
     Attachment,
     ReportOptions,
     RunSummary,

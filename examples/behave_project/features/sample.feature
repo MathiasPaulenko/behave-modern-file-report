@@ -1,4 +1,4 @@
-Feature: Sample feature for behave-modern-file-reports
+Feature: Sample feature for behave-modern-file-report
 
   This feature demonstrates passed, failed, and skipped scenarios
   to showcase the report formatters.

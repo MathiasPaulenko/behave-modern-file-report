@@ -1,4 +1,4 @@
-# behave-modern-file-reports
+# behave-modern-file-report
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -51,12 +51,12 @@ cover pages, executive summaries, environment metadata, attachments, and brandin
 
 ```bash
 # Install with all optional dependencies
-pip install "behave-modern-file-reports[all]"
+pip install "behave-modern-file-report[all]"
 
 # Or pick only what you need
-pip install "behave-modern-file-reports[behave,pdf]"
-pip install "behave-modern-file-reports[behave,docx]"
-pip install "behave-modern-file-reports[behave]"
+pip install "behave-modern-file-report[behave,pdf]"
+pip install "behave-modern-file-report[behave,docx]"
+pip install "behave-modern-file-report[behave]"
 ```
 
 ---
@@ -66,7 +66,7 @@ pip install "behave-modern-file-reports[behave]"
 1. Install the package with the formats you need:
 
    ```bash
-   pip install "behave-modern-file-reports[all]"
+   pip install "behave-modern-file-report[all]"
    ```
 
 2. Run Behave with a formatter and output file:
@@ -182,7 +182,7 @@ to your test steps. Attachments are embedded inline in the reports.
 ### Screenshot
 
 ```python
-from behave_modern_file_reports import attach_screenshot
+from behave_modern_file_report import attach_screenshot
 
 @when("I take a screenshot")
 def step_impl(context):
@@ -211,7 +211,7 @@ attach_screenshot(context, pil_image, "page.png")
 ### File, text, and JSON
 
 ```python
-from behave_modern_file_reports import attach_file, attach_text, attach_json, log
+from behave_modern_file_report import attach_file, attach_text, attach_json, log
 
 # Attach a file
 attach_file(context, "/tmp/report.csv", "report.csv")
@@ -287,8 +287,8 @@ behave -f behave-modern-pdf -o report.pdf \
 | `dev` | `all` + `pytest`, `ruff`, `mypy`, `build`, `twine` | Development tools |
 
 ```bash
-pip install "behave-modern-file-reports[all]"
-pip install "behave-modern-file-reports[dev]"
+pip install "behave-modern-file-report[all]"
+pip install "behave-modern-file-report[dev]"
 ```
 
 ---

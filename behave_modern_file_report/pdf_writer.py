@@ -23,8 +23,8 @@ import html
 from pathlib import Path
 from typing import Any
 
-from behave_modern_file_reports.html_renderer import render_html
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.html_renderer import render_html
+from behave_modern_file_report.models import (
     Background,
     ErrorInfo,
     FeatureSummary,
@@ -33,7 +33,7 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.utils import (
+from behave_modern_file_report.utils import (
     STATUS_COLORS,
     STATUS_FAILED,
     STATUS_ICONS,

@@ -11,7 +11,7 @@ import binascii
 import textwrap
 from typing import TextIO
 
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.models import (
     Background,
     FeatureSummary,
     ReportOptions,
@@ -19,7 +19,7 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.utils import (
+from behave_modern_file_report.utils import (
     STATUS_FAILED,
     STATUS_LABELS,
     STATUS_PASSED,

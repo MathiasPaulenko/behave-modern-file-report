@@ -17,14 +17,14 @@ from typing import Any
 
 from behave.formatter.base import Formatter
 
-from behave_modern_file_reports.collector import Collector
-from behave_modern_file_reports.models import (
+from behave_modern_file_report.collector import Collector
+from behave_modern_file_report.models import (
     Attachment,
     FeatureSummary,
     ReportOptions,
     RunSummary,
 )
-from behave_modern_file_reports.utils import STATUS_FAILED
+from behave_modern_file_report.utils import STATUS_FAILED
 
 
 def _filter_failed_scenarios(run_summary: RunSummary) -> None:

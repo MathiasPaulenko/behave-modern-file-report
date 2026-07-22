@@ -1,12 +1,12 @@
 """Behave environment with screenshot and attachment hooks.
 
 This file is loaded by Behave before running features. It demonstrates how to
-use the public attachment API from ``behave_modern_file_reports``.
+use the public attachment API from ``behave_modern_file_report``.
 """
 
 from __future__ import annotations
 
-from behave_modern_file_reports import attach_screenshot, attach_text, log
+from behave_modern_file_report import attach_screenshot, attach_text, log
 
 
 def before_scenario(context, scenario):
