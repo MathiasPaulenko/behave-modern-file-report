@@ -121,6 +121,7 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
             feature: A Behave ``Feature`` object.
         """
         self._collector.end_background()
+        self._flush_orphan_buffers()
         self._collector.end_scenario()
         self._collector.end_feature()
         self._collector.start_feature(feature)
@@ -154,6 +155,7 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
             scenario: A Behave ``Scenario`` object.
         """
         self._collector.end_background()
+        self._flush_orphan_buffers()
         self._collector.end_scenario()
         self._collector.start_scenario(scenario)
 
@@ -188,6 +190,7 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
     def eof(self) -> None:
         """Handle end-of-file notification (finalizes current feature/scenario)."""
         self._collector.end_background()
+        self._flush_orphan_buffers()
         self._collector.end_scenario()
         self._collector.end_feature()
 
@@ -251,6 +254,26 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
             message: The log message text.
         """
         self._log_buffer.append(message)
+
+    def _flush_orphan_buffers(self) -> None:
+        """Flush attachment/log buffers to the last step of the current scenario.
+
+        Attachments and logs emitted outside of a step result (for example in
+        ``after_scenario`` hooks) are buffered without a matching queued step.
+        Attach them to the most recent step so they are not silently dropped.
+        """
+        if not self._attachment_buffer and not self._log_buffer:
+            return
+        scenario = self._collector._current_scenario
+        if scenario is None or not scenario.steps:
+            self._attachment_buffer.clear()
+            self._log_buffer.clear()
+            return
+        target_step = scenario.steps[-1]
+        target_step.attachments.extend(self._attachment_buffer)
+        target_step.logs.extend(self._log_buffer)
+        self._attachment_buffer.clear()
+        self._log_buffer.clear()
 
     # ------------------------------------------------------------------
     # Abstract interface

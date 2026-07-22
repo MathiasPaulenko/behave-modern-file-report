@@ -401,6 +401,35 @@ def test_multiple_attachments_and_logs_on_same_step() -> None:
     assert len(step.logs) == 3
 
 
+def test_orphan_attachments_flushed_to_last_step_on_scenario_end() -> None:
+    """Attachments/logs emitted after the last result are flushed to the last step."""
+    fmt = TestFormatter()
+    fmt.feature(_mock_feature())
+    fmt.scenario(_mock_scenario())
+    fmt.step(_mock_step(name="step 1"))
+    fmt.result(_mock_step(name="step 1", status="passed"))
+    fmt.attach(Attachment(name="post_step.png", mime_type="image/png"))
+    fmt.log("after step log")
+    fmt.eof()
+    fmt.close()
+    scenario = fmt.write_calls[0][0].features[0].scenarios[0]
+    assert len(scenario.steps) == 1
+    assert len(scenario.steps[0].attachments) == 1
+    assert scenario.steps[0].attachments[0].name == "post_step.png"
+    assert scenario.steps[0].logs == ["after step log"]
+
+
+def test_orphan_attachments_discarded_when_no_scenario() -> None:
+    """Orphan attachments/logs are discarded when there is no current scenario."""
+    fmt = TestFormatter()
+    fmt.attach(Attachment(name="orphan.png", mime_type="image/png"))
+    fmt.log("orphan log")
+    fmt.eof()
+    fmt.close()
+    assert len(fmt._attachment_buffer) == 0
+    assert len(fmt._log_buffer) == 0
+
+
 # ---------------------------------------------------------------------------
 # Full lifecycle integration
 # ---------------------------------------------------------------------------
