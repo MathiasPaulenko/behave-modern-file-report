@@ -240,7 +240,7 @@ class DOCXWriter:
         doc.add_paragraph()
         self._add_progress_bar(doc, run.pass_rate)
 
-        doc.add_page_break()
+        doc.add_page_break()  # type: ignore[no-untyped-call]
 
     def _add_progress_bar(self, doc: DocxDocument, pass_rate: float) -> None:
         """Add a visual progress bar as a shaded table cell."""
@@ -289,7 +289,7 @@ class DOCXWriter:
                 para, text, bookmark_name, 11 if level == 0 else 10
             )
 
-        doc.add_page_break()
+        doc.add_page_break()  # type: ignore[no-untyped-call]
 
     # ------------------------------------------------------------------
     # Executive summary
@@ -369,7 +369,7 @@ class DOCXWriter:
                     format_duration(feature.duration)
                 ).font.size = Pt(10)
 
-        doc.add_page_break()
+        doc.add_page_break()  # type: ignore[no-untyped-call]
 
     # ------------------------------------------------------------------
     # Environment metadata
@@ -406,7 +406,7 @@ class DOCXWriter:
             self._shade_cell(label_cell, None, _SURFACE_BG)
             value_cell.paragraphs[0].add_run(value).font.size = Pt(10)
 
-        doc.add_page_break()
+        doc.add_page_break()  # type: ignore[no-untyped-call]
 
     # ------------------------------------------------------------------
     # Feature
