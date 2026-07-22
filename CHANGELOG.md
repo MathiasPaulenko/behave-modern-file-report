@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-22
+
 ### Fixed
 
 - `BaseFileFormatter` now finalizes the background section at feature/scenario/eof boundaries so background steps are captured and attached to the correct feature.
