@@ -11,6 +11,7 @@ Context variables:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -133,9 +134,10 @@ def render_html(
 
     # Inject primary_color into CSS variables
     if opts.primary_color:
-        css_content = css_content.replace(
-            "--color-primary: #2563EB;",
+        css_content = re.sub(
+            r"--color-primary:\s*[^;]+;",
             f"--color-primary: {opts.primary_color};",
+            css_content,
         )
 
     template = env.get_template(tname)
