@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import mimetypes
 from types import SimpleNamespace
 from typing import Any
 
@@ -574,11 +575,17 @@ def test_close_resolves_logo() -> None:
     assert fmt.write_calls[0][1].logo_b64 == ""
 
 
-def test_resolve_logo_unknown_extension(tmp_path: Any) -> None:
+def test_resolve_logo_unknown_extension(
+    tmp_path: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Logo with unknown extension defaults to image/png MIME."""
     logo_data = b"\x00\x01\x02\x03"
     logo_file = tmp_path / "logo.xyz"
     logo_file.write_bytes(logo_data)
+
+    # Force the MIME guess to return None so the code falls back to image/png.
+    monkeypatch.setattr(mimetypes, "guess_type", lambda _path: (None, None))
 
     fmt = TestFormatter(config=_mock_config({"bmfr.logo": str(logo_file)}))
     fmt._resolve_logo()
