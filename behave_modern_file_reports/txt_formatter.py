@@ -40,10 +40,17 @@ class TXTFormatter(BaseFileFormatter):
             self._close_stream(stream)
 
     def _open_stream(self) -> Any:
-        """Open the output stream via the stream opener or a default file."""
+        """Open the output stream in UTF-8 mode.
+
+        Forces the Behave stream opener to use UTF-8 so Unicode status icons
+        and arrows are written correctly on all platforms.
+        """
         if self._stream_opener is not None:
             open_method = getattr(self._stream_opener, "open", None)
             if open_method is not None:
+                encoding_attr = getattr(self._stream_opener, "encoding", None)
+                if encoding_attr is not None:
+                    self._stream_opener.encoding = "utf-8"
                 return open_method()
         # Fallback: open default filename
         return open(self._default_filename, "w", encoding="utf-8")

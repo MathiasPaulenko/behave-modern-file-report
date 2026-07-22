@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BaseFileFormatter` now exposes `_resolve_path` and `_resolve_logo`, removing duplicated path resolution in `DOCXFormatter` and `PDFFormatter`.
 - `Collector` now exposes `peek_current_step` so `BaseFileFormatter` no longer accesses the private `_step_queue` directly.
 - Duration formatting is now unified through `utils.format_duration` with configurable precision, eliminating duplicated implementations in HTML/PDF/TXT.
+- Status icons, labels, and colors are now centralized in `utils` and reused by DOCX, PDF, HTML, and TXT writers.
+- `TXTFormatter` now forces UTF-8 output encoding, preventing `UnicodeEncodeError` when writing Unicode status icons on Windows.
 
 ## [1.0.0] - 2026-07-22
 

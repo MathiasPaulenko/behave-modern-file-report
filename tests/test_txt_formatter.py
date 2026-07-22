@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -133,6 +133,28 @@ def test_write_report_uses_stream_opener() -> None:
     assert "Test Report" in content
     assert "Test feature" in content
     assert "Test scenario" in content
+
+
+def test_open_stream_uses_utf8_encoding() -> None:
+    """TXTFormatter forces the stream opener to use UTF-8 encoding."""
+    opener = SimpleNamespace(
+        name="report.txt",
+        encoding="cp1252",
+        stream=None,
+        open=SimpleNamespace,
+    )
+    called: dict[str, Any] = {}
+
+    def fake_open() -> io.StringIO:
+        called["encoding"] = opener.encoding
+        opener.stream = io.StringIO()
+        return cast(io.StringIO, opener.stream)
+
+    opener.open = fake_open
+    fmt = TXTFormatter(stream_opener=opener)
+    stream = fmt._open_stream()
+    assert called["encoding"] == "utf-8"
+    assert stream is opener.stream
 
 
 def test_close_writes_report_via_stream_opener() -> None:
