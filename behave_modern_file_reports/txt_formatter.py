@@ -62,8 +62,10 @@ class TXTFormatter(BaseFileFormatter):
             flush()
         if self._stream_opener is None:
             stream.close()
-        elif hasattr(self._stream_opener, "close"):
-            self._stream_opener.close()
+        else:
+            close_method = getattr(self._stream_opener, "close", None)
+            if callable(close_method):
+                close_method()
 
 
 __all__ = ["TXTFormatter"]
