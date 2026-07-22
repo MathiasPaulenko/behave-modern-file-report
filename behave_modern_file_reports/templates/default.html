@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ run.title }}</title>
+  <style>{{ css }}</style>
+</head>
+<body>
+
+  <!-- Cover page -->
+  <section class="cover">
+    {% if options.logo_b64 %}
+    <img class="cover-logo" src="{{ options.logo_b64 }}" alt="logo" />
+    {% endif %}
+    <h1 class="cover-title">{{ run.title or "Behave Modern Report" }}</h1>
+    {% if run.project_name %}
+    <p class="cover-subtitle">{{ run.project_name }}</p>
+    {% endif %}
+    <hr class="cover-line" />
+    <div class="cover-meta">
+      <div><span>Started:</span> {{ run.start_time }}</div>
+      <div><span>Duration:</span> {{ run.duration | format_duration }}</div>
+      <div><span>Scenarios:</span> {{ run.total_scenarios }}</div>
+      <div><span>Passed:</span> {{ run.passed }}</div>
+      <div><span>Failed:</span> {{ run.failed }}</div>
+      <div><span>Skipped:</span> {{ run.skipped }}</div>
+      <div><span>Pass rate:</span> {{ (run.pass_rate * 100) | round(1) }}%</div>
+    </div>
+    <div class="cover-progress">
+      <div class="cover-progress-bar" style="width: {{ (run.pass_rate * 100) | round(1) }}%"></div>
+    </div>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- Table of contents -->
+  <section class="toc">
+    <h1 class="section-title">Table of contents</h1>
+    <ul>
+      <li><a href="#summary">Executive summary</a></li>
+      <li><a href="#environment">Environment</a></li>
+      {% for feature in run.features %}
+      <li>
+        <a href="#feature-{{ loop.index }}">{{ feature.name }}</a>
+        <ul>
+          {% for scenario in feature.scenarios %}
+          <li><a href="#scenario-{{ loop.index0 }}-{{ loop.index }}">{{ scenario.name }}</a></li>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- Executive summary -->
+  <section id="summary" class="summary">
+    <h1 class="section-title">Executive summary</h1>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <span class="summary-number">{{ run.total_scenarios }}</span>
+        <span class="summary-label">Scenarios</span>
+      </div>
+      <div class="summary-card passed">
+        <span class="summary-number">{{ run.passed }}</span>
+        <span class="summary-label">Passed</span>
+      </div>
+      <div class="summary-card failed">
+        <span class="summary-number">{{ run.failed }}</span>
+        <span class="summary-label">Failed</span>
+      </div>
+      <div class="summary-card skipped">
+        <span class="summary-number">{{ run.skipped }}</span>
+        <span class="summary-label">Skipped</span>
+      </div>
+    </div>
+
+    {% if run.features %}
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Scenarios</th>
+          <th>Passed</th>
+          <th>Failed</th>
+          <th>Skipped</th>
+          <th>Pass rate</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for feature in run.features %}
+        <tr>
+          <td>{{ feature.name }}</td>
+          <td>{{ feature.total_scenarios }}</td>
+          <td>{{ feature.passed }}</td>
+          <td>{{ feature.failed }}</td>
+          <td>{{ feature.skipped }}</td>
+          <td>{{ (feature.pass_rate * 100) | round(1) }}%</td>
+          <td>{{ feature.duration | format_duration }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- Environment -->
+  <section id="environment" class="environment">
+    <h1 class="section-title">Environment</h1>
+    <table class="data-table">
+      <tbody>
+        <tr><td>Python</td><td>{{ run.environment.python_version }}</td></tr>
+        <tr><td>Behave</td><td>{{ run.environment.behave_version }}</td></tr>
+        <tr><td>Platform</td><td>{{ run.environment.platform }}</td></tr>
+        <tr><td>Hostname</td><td>{{ run.environment.hostname }}</td></tr>
+        <tr><td>Working directory</td><td>{{ run.environment.cwd }}</td></tr>
+        <tr><td>Command</td><td><code>{{ run.environment.command }}</code></td></tr>
+        <tr><td>User</td><td>{{ run.environment.user }}</td></tr>
+        <tr><td>Git branch</td><td>{{ run.environment.git_branch }}</td></tr>
+        <tr><td>Git commit</td><td>{{ run.environment.git_commit }}</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Features -->
+  {% for feature in run.features %}
+  <div class="page-break"></div>
+  <section class="feature" id="feature-{{ loop.index }}">
+    <header class="feature-header">
+      <h1 class="section-title">{{ feature.name }}</h1>
+      <span class="badge badge-{{ feature.status }}">{{ feature.status }}</span>
+    </header>
+    {% if feature.location %}
+    <p class="feature-location">{{ feature.location }}</p>
+    {% endif %}
+    {% if feature.description %}
+    <p class="feature-description">{{ feature.description }}</p>
+    {% endif %}
+    {% if feature.tags %}
+    <div class="tags">{{ feature.tags | join(' @') }}</div>
+    {% endif %}
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Total</th>
+          <th>Passed</th>
+          <th>Failed</th>
+          <th>Skipped</th>
+          <th>Undefined</th>
+          <th>Pass rate</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ feature.total_scenarios }}</td>
+          <td>{{ feature.passed }}</td>
+          <td>{{ feature.failed }}</td>
+          <td>{{ feature.skipped }}</td>
+          <td>{{ feature.undefined }}</td>
+          <td>{{ (feature.pass_rate * 100) | round(1) }}%</td>
+          <td>{{ feature.duration | format_duration }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    {% if feature.background %}
+    <section class="background">
+      <h3>Background: {{ feature.background.name }}</h3>
+      <table class="step-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Step</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for step in feature.background.steps %}
+          <tr class="step-{{ step.status }}">
+            <td><span class="status-icon status-{{ step.status }}">{{ step.status | status_icon }}</span></td>
+            <td><strong>{{ step.keyword.rstrip() }}</strong> {{ step.name }}</td>
+            <td>{{ step.duration | format_duration }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+
+    {% for scenario in feature.scenarios %}
+    <section class="scenario" id="scenario-{{ loop.index0 }}-{{ loop.index }}">
+      <header class="scenario-header">
+        <h2>{{ scenario.name }}{% if scenario.is_outline %} [OUTLINE]{% endif %}</h2>
+        <span class="badge badge-{{ scenario.status }}">{{ scenario.status }}</span>
+      </header>
+      <div class="scenario-meta">
+        {% if scenario.location %}
+        <span>Location: {{ scenario.location }}</span>
+        {% endif %}
+        {% if scenario.rule_name %}
+        <span>Rule: {{ scenario.rule_name }}</span>
+        {% endif %}
+        <span>Duration: {{ scenario.duration | format_duration }}</span>
+        {% if scenario.tags %}
+        <span class="tags">{{ scenario.tags | join(' @') }}</span>
+        {% endif %}
+      </div>
+
+      {% if scenario.background %}
+      <section class="background">
+        <h3>Background: {{ scenario.background.name }}</h3>
+        <table class="step-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Step</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for step in scenario.background.steps %}
+            <tr class="step-{{ step.status }}">
+              <td><span class="status-icon status-{{ step.status }}">{{ step.status | status_icon }}</span></td>
+              <td><strong>{{ step.keyword.rstrip() }}</strong> {{ step.name }}</td>
+              <td>{{ step.duration | format_duration }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+
+      <table class="step-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Step</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for step in scenario.steps %}
+          <tr class="step-{{ step.status }}">
+            <td><span class="status-icon status-{{ step.status }}">{{ step.status | status_icon }}</span></td>
+            <td><strong>{{ step.keyword.rstrip() }}</strong> {{ step.name }}</td>
+            <td>{{ step.duration | format_duration }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if scenario.error %}
+      <div class="error-block">
+        <h4>Failure</h4>
+        {% if scenario.error.exception_type %}
+        <p><strong>Type:</strong> {{ scenario.error.exception_type }}</p>
+        {% endif %}
+        <p><strong>Message:</strong> {{ scenario.error.message }}</p>
+        {% if scenario.error.traceback %}
+        <p><strong>Traceback:</strong></p>
+        <pre>{{ scenario.error.traceback }}</pre>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% set scenario_attachments = [] %}
+      {% for step in scenario.steps %}
+        {% for attachment in step.attachments %}
+          {% if scenario_attachments.append(attachment) %}{% endif %}
+        {% endfor %}
+      {% endfor %}
+      {% if scenario_attachments %}
+      <div class="attachments">
+        <h4>Attachments</h4>
+        <ul>
+          {% for attachment in scenario_attachments %}
+          <li>
+            {% if attachment.is_image and options.include_attachments %}
+            <figure>
+              <img src="data:{{ attachment.mime_type }};base64,{{ attachment.data_base64 }}" alt="{{ attachment.name }}" />
+              <figcaption>{{ attachment.name }}</figcaption>
+            </figure>
+            {% else %}
+            <span class="attachment-name">{{ attachment.name }}</span>
+            {% if attachment.text %}
+            <pre>{{ attachment.text }}</pre>
+            {% endif %}
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% set scenario_logs = [] %}
+      {% for step in scenario.steps %}
+        {% for log_line in step.logs %}
+          {% if scenario_logs.append(log_line) %}{% endif %}
+        {% endfor %}
+      {% endfor %}
+      {% if scenario_logs %}
+      <div class="logs">
+        <h4>Logs</h4>
+        <pre>{% for line in scenario_logs %}{{ line }}
+{% endfor %}</pre>
+      </div>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </section>
+  {% endfor %}
+
+</body>
+</html>
