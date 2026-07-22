@@ -96,8 +96,9 @@ behave -f behave-modern-docx -o report.docx
 behave -f behave-modern-txt -o report.txt
 ```
 
-The included `behave.ini` configures the formatters and sets `bmfr.title` and
-`bmfr.project_name`.
+The included `behave.ini` configures the formatters and sets `bmfr.title`,
+`bmfr.project_name`, and `bmfr.pdf_engine = reportlab` so the PDF example works
+without WeasyPrint system dependencies.
 
 ---
 
