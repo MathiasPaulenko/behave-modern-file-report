@@ -5,6 +5,7 @@ Pure dataclasses with ``slots=True`` and zero external dependencies.
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 
 from behave_modern_file_reports.utils import (
@@ -326,14 +327,22 @@ class Environment:
         except Exception:
             pass
 
+        cwd = ""
+        with contextlib.suppress(OSError):
+            cwd = os.getcwd()
+
+        user = ""
+        with contextlib.suppress(OSError, KeyError):
+            user = getpass.getuser()
+
         return cls(
             python_version=platform.python_version(),
             behave_version=behave_version,
             platform=platform.platform(),
             hostname=platform.node(),
-            cwd=os.getcwd(),
+            cwd=cwd,
             command=" ".join(sys.argv),
-            user=getpass.getuser(),
+            user=user,
             cpu_count=os.cpu_count() or 0,
             git_branch=git_branch,
             git_commit=git_commit,

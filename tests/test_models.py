@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+import pytest
+
 from behave_modern_file_reports.models import (
     Attachment,
     Background,
@@ -281,6 +285,30 @@ def test_environment_with_values() -> None:
     )
     assert env.python_version == "3.14.0"
     assert env.git_branch == "main"
+
+
+def test_environment_capture_handles_missing_user_and_cwd(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Environment.capture tolerates failures from os.getcwd and getpass.getuser."""
+    monkeypatch.setattr("os.getcwd", lambda: (_ for _ in ()).throw(OSError("no cwd")))
+    monkeypatch.setattr("getpass.getuser", lambda: (_ for _ in ()).throw(KeyError("no user")))
+    env = Environment.capture()
+    assert env.cwd == ""
+    assert env.user == ""
+
+
+def test_environment_capture_handles_missing_behave_and_git(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Environment.capture tolerates missing behave package and git commands."""
+    def _raise(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("not available")
+
+    monkeypatch.setattr("importlib.metadata.version", _raise)
+    monkeypatch.setattr("subprocess.run", _raise)
+    env = Environment.capture()
+    assert env.behave_version == ""
+    assert env.git_branch == ""
+    assert env.git_commit == ""
 
 
 # ---------------------------------------------------------------------------

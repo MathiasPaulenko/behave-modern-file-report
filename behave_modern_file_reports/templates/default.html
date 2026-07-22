@@ -132,7 +132,7 @@
   <section class="feature" id="feature-{{ loop.index }}">
     <header class="feature-header">
       <h1 class="section-title">{{ feature.name }}</h1>
-      <span class="badge badge-{{ feature.status }}">{{ feature.status }}</span>
+      <span class="badge badge-{{ feature.derive_status() }}">{{ feature.derive_status() }}</span>
     </header>
     {% if feature.location %}
     <p class="feature-location">{{ feature.location }}</p>

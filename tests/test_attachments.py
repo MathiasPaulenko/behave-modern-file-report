@@ -826,6 +826,17 @@ def test_attach_text_truncated() -> None:
     assert len(att.text.encode("utf-8")) <= 1024
 
 
+def test_attach_text_non_positive_max_size_no_truncation() -> None:
+    """A non-positive attachment_max_size_kb disables text truncation."""
+    fmt = _make_formatter()
+    fmt._options.attachment_max_size_kb = -1
+    ctx = _mock_context(fmt)
+    long_text = "x" * 2048
+    attach_text(ctx, long_text)
+    att = fmt._attachment_buffer[0]
+    assert att.text == long_text
+
+
 # ---------------------------------------------------------------------------
 # Public API: attach_json
 # ---------------------------------------------------------------------------
@@ -885,6 +896,19 @@ def test_attach_json_truncated() -> None:
     assert len(fmt._attachment_buffer) == 1
     att = fmt._attachment_buffer[0]
     assert len((att.text or "").encode("utf-8")) <= 1024
+
+
+def test_attach_json_non_positive_max_size_no_truncation() -> None:
+    """A non-positive attachment_max_size_kb disables JSON truncation."""
+    fmt = _make_formatter()
+    fmt._options.attachment_max_size_kb = 0
+    ctx = _mock_context(fmt)
+    big_data = {str(i): i for i in range(500)}
+    attach_json(ctx, big_data)
+    att = fmt._attachment_buffer[0]
+    assert att.text is not None
+    import json
+    assert json.loads(att.text) == big_data
 
 
 # ---------------------------------------------------------------------------

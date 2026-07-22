@@ -498,8 +498,9 @@ class ReportLabWriter:
         from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
 
         story.append(Paragraph(_escape(feature.name), style_h1))
-        status_label = _STATUS_LABELS.get(feature.status, feature.status.upper())
-        status_color = _STATUS_COLORS.get(feature.status, _TEXT_MUTED)
+        feature_status = feature.derive_status()
+        status_label = _STATUS_LABELS.get(feature_status, feature_status.upper())
+        status_color = _STATUS_COLORS.get(feature_status, _TEXT_MUTED)
         story.append(Paragraph(
             f'<font color="#{status_color[0]:02X}{status_color[1]:02X}{status_color[2]:02X}">'
             f"{_escape(status_label)}</font>",

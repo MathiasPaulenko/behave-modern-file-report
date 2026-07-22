@@ -22,6 +22,7 @@ from behave_modern_file_reports.models import (
 class TestFormatter(BaseFileFormatter):
     """Concrete formatter for testing."""
 
+    __test__ = False
     name = "test-formatter"
     description = "Test formatter"
     _format_key = "pdf"
@@ -73,6 +74,11 @@ def _mock_step(
         location="f:10", duration=duration, text=None,
         error=None, exception=None, error_message=None,
     )
+
+
+def _mock_background(name: str = "Background") -> SimpleNamespace:
+    """Create a mock Behave background."""
+    return SimpleNamespace(name=name, location="f:2")
 
 
 # ---------------------------------------------------------------------------
@@ -205,6 +211,30 @@ def test_result_finalizes_step() -> None:
     assert fmt._collector._current_scenario.steps[0].status == "passed"
 
 
+def test_background_steps_are_attached_to_feature_and_scenarios() -> None:
+    """Background steps are captured and attached to the feature/scenarios."""
+    fmt = TestFormatter()
+    fmt.feature(_mock_feature(name="F1"))
+    fmt.background(_mock_background(name="BG"))
+    fmt.step(_mock_step(name="bg step"))
+    fmt.result(_mock_step(name="bg step", status="passed"))
+    fmt.scenario(_mock_scenario(name="S1"))
+    fmt.step(_mock_step(name="sc step"))
+    fmt.result(_mock_step(name="sc step", status="passed"))
+    fmt.eof()
+    fmt.close()
+
+    run = fmt.write_calls[0][0]
+    assert len(run.features) == 1
+    feature = run.features[0]
+    assert feature.background is not None
+    assert [s.name for s in feature.background.steps] == ["bg step"]
+    assert len(feature.scenarios) == 1
+    scenario = feature.scenarios[0]
+    assert [s.name for s in scenario.steps] == ["sc step"]
+    assert scenario.background is feature.background
+
+
 def test_eof_finalizes_scenario_and_feature() -> None:
     """eof() finalizes the current scenario and feature."""
     fmt = TestFormatter()
@@ -263,6 +293,30 @@ def test_close_passes_options_to_write_report() -> None:
     fmt.close()
     _, opts = fmt.write_calls[0]
     assert opts.title == "My Report"
+
+
+def test_close_only_failed_filters_to_failed_scenarios() -> None:
+    """close() filters the run summary to failed scenarios when only_failed is set."""
+    config = _mock_config({"bmfr.only_failed": "true"})
+    fmt = TestFormatter(config=config)
+    fmt.feature(_mock_feature(name="mixed"))
+    fmt.scenario(_mock_scenario(name="passing"))
+    fmt.step(_mock_step(name="ok"))
+    fmt.result(_mock_step(name="ok", status="passed"))
+    fmt.scenario(_mock_scenario(name="failing"))
+    fmt.step(_mock_step(name="bad"))
+    fmt.result(_mock_step(name="bad", status="failed"))
+    fmt.feature(_mock_feature(name="all_pass"))
+    fmt.scenario(_mock_scenario(name="another"))
+    fmt.step(_mock_step(name="ok2"))
+    fmt.result(_mock_step(name="ok2", status="passed"))
+    fmt.eof()
+    fmt.close()
+    run = fmt.write_calls[0][0]
+    assert len(run.features) == 1
+    assert run.features[0].name == "mixed"
+    assert len(run.features[0].scenarios) == 1
+    assert run.features[0].scenarios[0].name == "failing"
 
 
 # ---------------------------------------------------------------------------
@@ -481,3 +535,14 @@ def test_resolve_logo_unknown_extension(tmp_path: Any) -> None:
     fmt._resolve_logo()
 
     assert fmt._options.logo_b64.startswith("data:image/png;base64,")
+
+
+def test_resolve_logo_skipped_for_non_image(tmp_path: Any) -> None:
+    """Logo resolution is skipped when the file is not an image."""
+    logo_file = tmp_path / "logo.txt"
+    logo_file.write_text("not an image")
+
+    fmt = TestFormatter(config=_mock_config({"bmfr.logo": str(logo_file)}))
+    fmt._resolve_logo()
+
+    assert fmt._options.logo_b64 == ""

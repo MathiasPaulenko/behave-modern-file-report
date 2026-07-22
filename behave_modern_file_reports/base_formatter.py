@@ -20,9 +20,40 @@ from behave.formatter.base import Formatter
 from behave_modern_file_reports.collector import Collector
 from behave_modern_file_reports.models import (
     Attachment,
+    FeatureSummary,
     ReportOptions,
     RunSummary,
 )
+from behave_modern_file_reports.utils import STATUS_FAILED
+
+
+def _filter_failed_scenarios(run_summary: RunSummary) -> None:
+    """Reduce a run summary to failed scenarios only.
+
+    Mutates ``run_summary.features`` so that each feature contains only its
+    failed scenarios. Features with no failed scenarios are removed.
+    """
+    filtered_features: list[FeatureSummary] = []
+    for feature in run_summary.features:
+        failed_scenarios = [
+            scenario for scenario in feature.scenarios
+            if scenario.status == STATUS_FAILED
+        ]
+        if not failed_scenarios:
+            continue
+        filtered_features.append(
+            FeatureSummary(
+                name=feature.name,
+                description=feature.description,
+                status=feature.derive_status(),
+                duration=feature.duration,
+                tags=feature.tags,
+                location=feature.location,
+                scenarios=failed_scenarios,
+                background=feature.background,
+            )
+        )
+    run_summary.features = filtered_features
 
 
 class BaseFileFormatter(Formatter):  # type: ignore[misc]
@@ -89,6 +120,7 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         Args:
             feature: A Behave ``Feature`` object.
         """
+        self._collector.end_background()
         self._collector.end_scenario()
         self._collector.end_feature()
         self._collector.start_feature(feature)
@@ -114,11 +146,14 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
     def scenario(self, scenario: Any) -> None:
         """Begin tracking a scenario.
 
-        Finalizes the previous scenario if one is still open.
+        Finalizes the previous scenario if one is still open. The background
+        section is also finalized here because Behave does not emit an explicit
+        ``end_background`` event.
 
         Args:
             scenario: A Behave ``Scenario`` object.
         """
+        self._collector.end_background()
         self._collector.end_scenario()
         self._collector.start_scenario(scenario)
 
@@ -152,6 +187,7 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
 
     def eof(self) -> None:
         """Handle end-of-file notification (finalizes current feature/scenario)."""
+        self._collector.end_background()
         self._collector.end_scenario()
         self._collector.end_feature()
 
@@ -165,6 +201,8 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         run_summary.title = self._options.title
         if self._options.project_name:
             run_summary.project_name = self._options.project_name
+        if self._options.only_failed:
+            _filter_failed_scenarios(run_summary)
         self._write_report(run_summary, self._options)
 
     # ------------------------------------------------------------------
@@ -186,8 +224,10 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         if not logo_path.is_file():
             return
         mime, _ = mimetypes.guess_type(str(logo_path))
-        if mime is None or not mime.startswith("image/"):
+        if mime is None:
             mime = "image/png"
+        elif not mime.startswith("image/"):
+            return
         data = logo_path.read_bytes()
         encoded = base64.b64encode(data).decode("ascii")
         self._options.logo_b64 = f"data:{mime};base64,{encoded}"

@@ -320,7 +320,7 @@ def attach_text(
 
     max_kb = _get_max_size_kb(fmt)
     encoded = text.encode("utf-8")
-    if len(encoded) > max_kb * 1024:
+    if max_kb > 0 and len(encoded) > max_kb * 1024:
         encoded = encoded[: max_kb * 1024]
         text = encoded.decode("utf-8", errors="ignore")
 
@@ -347,7 +347,7 @@ def attach_json(
     text = json.dumps(data, indent=2, default=str, ensure_ascii=False)
     max_kb = _get_max_size_kb(fmt)
     encoded = text.encode("utf-8")
-    if len(encoded) > max_kb * 1024:
+    if max_kb > 0 and len(encoded) > max_kb * 1024:
         encoded = encoded[: max_kb * 1024]
         text = encoded.decode("utf-8", errors="ignore")
 

@@ -758,8 +758,9 @@ class DOCXWriter:
         w_ns = nsmap["w"]
         bid = self._bookmark_id
         self._bookmark_id += 1
+        safe_name = _html_escape(name, quote=True)
         start = parse_xml(
-            f'<w:bookmarkStart w:id="{bid}" w:name="{name}" '
+            f'<w:bookmarkStart w:id="{bid}" w:name="{safe_name}" '
             f'xmlns:w="{w_ns}" />'
         )
         end = parse_xml(f'<w:bookmarkEnd w:id="{bid}" xmlns:w="{w_ns}" />')
@@ -781,9 +782,10 @@ class DOCXWriter:
         """Add a hyperlink to a bookmark in the given paragraph."""
         w_ns = nsmap["w"]
         escaped = _html_escape(text, quote=True)
+        safe_anchor = _html_escape(bookmark_name, quote=True)
         half_pts = font_size * 2
         hyperlink = parse_xml(
-            f'<w:hyperlink w:anchor="{bookmark_name}" w:history="1" '
+            f'<w:hyperlink w:anchor="{safe_anchor}" w:history="1" '
             f'xmlns:w="{w_ns}"><w:r><w:rPr>'
             f'<w:rStyle w:val="Hyperlink"/>'
             f'<w:sz w:val="{half_pts}"/>'

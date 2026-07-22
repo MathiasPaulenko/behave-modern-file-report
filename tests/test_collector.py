@@ -85,6 +85,18 @@ def test_end_feature_without_start_is_noop() -> None:
     assert len(col._features) == 0
 
 
+def test_end_feature_derives_status_from_scenarios() -> None:
+    """end_feature sets the feature status based on its scenarios."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="step 1", status="failed"))
+    col.end_step(_mock_step(name="step 1", status="failed"))
+    col.end_scenario()
+    col.end_feature()
+    assert col._features[0].status == "failed"
+
+
 def test_start_feature_with_description_string() -> None:
     """start_feature stores a string description."""
     col = Collector()
@@ -794,6 +806,33 @@ def test_traceback_no_truncation_when_limit_zero() -> None:
     step = col._current_scenario.steps[0]
     assert step.error is not None
     assert step.error.traceback == "line 1\nline 2"
+
+
+def test_traceback_not_truncated_by_safe_str() -> None:
+    """Long error_message strings are only truncated by max_traceback_lines, not safe_str."""
+    long_line = "x" * 1000
+    tb = f"{long_line}\nline 2"
+    exc = AssertionError("error")
+    mock_step = SimpleNamespace(
+        keyword="Then",
+        name="step",
+        status="failed",
+        location="f:1",
+        duration=0.01,
+        text=None,
+        error=exc,
+        error_message=tb,
+    )
+    col = Collector(max_traceback_lines=0)
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="step"))
+    col.end_step(mock_step)
+    assert col._current_scenario is not None
+    step = col._current_scenario.steps[0]
+    assert step.error is not None
+    assert long_line in step.error.traceback
+    assert "line 2" in step.error.traceback
 
 
 def test_scenario_error_populated_from_first_failed_step() -> None:

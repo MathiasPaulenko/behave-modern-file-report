@@ -151,7 +151,7 @@ class Collector:
 
         text = getattr(behave_step, "text", None)
         if text is not None:
-            text = safe_str(text)
+            text = str(text).strip()
 
         self._step_queue.append(
             Step(
@@ -226,6 +226,7 @@ class Collector:
             return
 
         self._current_feature.duration = time.perf_counter() - self._feature_start
+        self._current_feature.status = self._current_feature.derive_status()
         self._features.append(self._current_feature)
         self._current_feature = None
 
@@ -270,13 +271,13 @@ def _extract_error(behave_step: Any, max_traceback_lines: int) -> ErrorInfo | No
     if exception is None:
         return None
 
-    message = safe_str(exception)
+    message = str(exception).strip()
     exception_type = type(exception).__name__
 
     traceback_str = ""
     error_message = getattr(behave_step, "error_message", None)
     if error_message is not None:
-        traceback_str = safe_str(error_message)
+        traceback_str = str(error_message).strip()
     elif isinstance(exception, BaseException):
         tb_lines = _format_traceback(exception)
         traceback_str = "\n".join(tb_lines)

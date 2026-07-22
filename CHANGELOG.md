@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `BaseFileFormatter` now finalizes the background section at feature/scenario/eof boundaries so background steps are captured and attached to the correct feature.
+- `FeatureSummary.status` is now derived from its scenarios in `Collector.end_feature`, ensuring report badges reflect the real feature outcome.
+- `ReportOptions.only_failed` is now respected; non-failing scenarios are filtered out before the report is written.
+- `Environment.capture` no longer crashes when `os.getcwd()` or `getpass.getuser()` fail.
+- `Collector._extract_error` no longer prematurely truncates long error messages/tracebacks with `safe_str`; only `max_traceback_lines` controls traceback length.
+- `attach_text` and `attach_json` no longer truncate content when `attachment_max_size_kb` is zero or negative.
+- `BaseFileFormatter._resolve_logo` now rejects non-image files instead of forcing `image/png` on them.
+- `DOCXWriter` bookmarks and TOC links now escape bookmark names/anchors to avoid invalid XML.
+- `PDFWriter` and the HTML template now derive the feature status with `FeatureSummary.derive_status()` instead of relying on a manually-set `status` field.
+
 ## [1.0.0] - 2026-07-22
 
 ### Added
