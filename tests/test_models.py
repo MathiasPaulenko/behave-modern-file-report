@@ -454,6 +454,12 @@ def test_report_options_from_dict_invalid_color_falls_back() -> None:
     assert opts.primary_color == "#2563EB"
 
 
+def test_report_options_from_dict_invalid_pdf_engine_falls_back() -> None:
+    """from_dict falls back to the default engine when pdf_engine is invalid."""
+    opts = ReportOptions.from_dict({"bmfr.pdf_engine": "invalid-engine"})
+    assert opts.pdf_engine == "weasyprint"
+
+
 def test_report_options_from_dict_format_override() -> None:
     """from_dict resolves format-specific overrides over global keys."""
     opts = ReportOptions.from_dict(

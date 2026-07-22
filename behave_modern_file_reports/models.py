@@ -513,6 +513,12 @@ class ReportOptions:
         except ValueError:
             primary_color = "#2563EB"
 
+        raw_pdf_engine = resolve("pdf_engine")
+        try:
+            pdf_engine = parse_pdf_engine(raw_pdf_engine)
+        except ValueError:
+            pdf_engine = "weasyprint"
+
         return cls(
             only_failed=parse_bool(resolve("only_failed")),
             template=resolve("template") or "",
@@ -525,7 +531,7 @@ class ReportOptions:
             attachment_max_size_kb=parse_int(resolve("attachment_max_size_kb"), 512),
             txt_width=parse_int(resolve("txt_width"), 100),
             txt_ascii=parse_bool(resolve("txt_ascii")),
-            pdf_engine=parse_pdf_engine(resolve("pdf_engine")),
+            pdf_engine=pdf_engine,
         )
 
 

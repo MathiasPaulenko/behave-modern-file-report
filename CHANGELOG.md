@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TXTFormatter` now forces UTF-8 output encoding, preventing `UnicodeEncodeError` when writing Unicode status icons on Windows.
 - `TXTFormatter` now closes the Behave stream opener after writing, ensuring the output file is flushed and closed.
 - WeasyPrint rendering now also catches `OSError` caused by missing system libraries and reports a clear `ImportError`.
+- `ReportOptions.from_dict` now falls back to the default PDF engine when an invalid `pdf_engine` value is supplied.
 
 ## [1.0.0] - 2026-07-22
 
