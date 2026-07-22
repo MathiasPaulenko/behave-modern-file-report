@@ -785,6 +785,22 @@ def test_attach_file_oversized_skipped(tmp_path: Path) -> None:
     assert len(fmt._attachment_buffer) == 0
 
 
+def test_attach_file_missing_path() -> None:
+    """attach_file skips missing files without raising."""
+    fmt = _make_formatter()
+    ctx = _mock_context(fmt)
+    attach_file(ctx, "/nonexistent/path/file.txt")
+    assert len(fmt._attachment_buffer) == 0
+
+
+def test_attach_screenshot_file_path_missing() -> None:
+    """attach_screenshot skips missing file paths without raising."""
+    fmt = _make_formatter()
+    ctx = _mock_context(fmt)
+    attach_screenshot(ctx, "/nonexistent/path/screenshot.png")
+    assert len(fmt._attachment_buffer) == 0
+
+
 # ---------------------------------------------------------------------------
 # Public API: attach_text
 # ---------------------------------------------------------------------------

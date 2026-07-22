@@ -25,6 +25,7 @@ from behave_modern_file_reports.utils import (
     STATUS_PASSED,
     STATUS_SKIPPED,
     STATUS_UNDEFINED,
+    STATUS_UNTESTED,
     generate_id,
     normalize_status,
     now_iso,
@@ -59,6 +60,16 @@ class Collector:
         self._feature_start: float = 0.0
         self._max_traceback_lines: int = max_traceback_lines
         self._in_background: bool = False
+
+    def peek_current_step(self) -> Step | None:
+        """Return the next queued step without removing it.
+
+        Returns:
+            The next queued step, or ``None`` if the queue is empty.
+        """
+        if self._step_queue:
+            return self._step_queue[0]
+        return None
 
     def start_feature(self, behave_feature: Any) -> None:
         """Begin tracking a feature.
@@ -284,9 +295,11 @@ def _extract_error(behave_step: Any, max_traceback_lines: int) -> ErrorInfo | No
 
     if max_traceback_lines > 0:
         lines = traceback_str.splitlines()
-        if len(lines) > max_traceback_lines:
+        original_count = len(lines)
+        if original_count > max_traceback_lines:
             lines = lines[:max_traceback_lines]
-            lines.append(f"... ({len(lines)} lines truncated)")
+            truncated = original_count - max_traceback_lines
+            lines.append(f"... ({truncated} line{'s' if truncated != 1 else ''} truncated)")
             traceback_str = "\n".join(lines)
 
     return ErrorInfo(
@@ -347,7 +360,7 @@ def _derive_scenario_status(scenario: ScenarioResult) -> str:
         all_steps.extend(scenario.background.steps)
     all_steps.extend(scenario.steps)
     if not all_steps:
-        return STATUS_UNDEFINED
+        return STATUS_UNTESTED
     statuses = {s.status for s in all_steps}
     if STATUS_FAILED in statuses:
         return STATUS_FAILED
@@ -355,6 +368,8 @@ def _derive_scenario_status(scenario: ScenarioResult) -> str:
         return STATUS_UNDEFINED
     if STATUS_SKIPPED in statuses:
         return STATUS_SKIPPED
+    if STATUS_UNTESTED in statuses:
+        return STATUS_UNTESTED
     return STATUS_PASSED
 
 

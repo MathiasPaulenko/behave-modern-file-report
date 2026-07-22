@@ -7,6 +7,7 @@ Supports configurable line width and ASCII-only mode.
 from __future__ import annotations
 
 import base64
+import binascii
 import textwrap
 from typing import TextIO
 
@@ -256,8 +257,11 @@ class TXTWriter:
             for att in step.attachments:
                 size_info = ""
                 if att.data_base64:
-                    raw_len = len(base64.b64decode(att.data_base64))
-                    size_info = f" ({raw_len} bytes)"
+                    try:
+                        raw_len = len(base64.b64decode(att.data_base64))
+                        size_info = f" ({raw_len} bytes)"
+                    except (binascii.Error, ValueError):
+                        size_info = " (invalid base64)"
                 stream.write(f"{indent}  - {att.name} [{att.mime_type}]{size_info}")
                 stream.write("\n")
                 if att.text:

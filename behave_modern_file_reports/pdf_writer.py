@@ -18,6 +18,7 @@ Usage::
 
 from __future__ import annotations
 
+import functools
 import html
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,7 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
+from behave_modern_file_reports.utils import format_duration
 
 # ---------------------------------------------------------------------------
 # Design tokens (shared with WeasyPrint CSS)
@@ -71,13 +73,11 @@ _STATUS_ICONS: dict[str, str] = {
 }
 
 
-def _format_duration(seconds: float) -> str:
-    """Format a duration in seconds as a human-readable string."""
-    if seconds >= 1.0:
-        return f"{seconds:.2f}s"
-    if seconds >= 0.001:
-        return f"{seconds * 1000:.0f}ms"
-    return "0ms"
+_format_duration = functools.partial(
+    format_duration,
+    precision=2,
+    zero_label="0ms",
+)
 
 
 def _rl(rgb: tuple[int, int, int]) -> tuple[float, float, float]:

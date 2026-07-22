@@ -387,6 +387,25 @@ def test_run_summary_all_skipped() -> None:
     assert run.status == "skipped"
 
 
+def test_feature_summary_untested() -> None:
+    """FeatureSummary derives untested status when any scenario is untested."""
+    feat = FeatureSummary(
+        name="F",
+        scenarios=[_make_scenario("passed"), _make_scenario("untested")],
+    )
+    assert feat.derive_status() == "untested"
+
+
+def test_run_summary_untested() -> None:
+    """RunSummary derives untested status when any feature is untested."""
+    feat = FeatureSummary(
+        name="F",
+        scenarios=[_make_scenario("passed"), _make_scenario("untested")],
+    )
+    run = RunSummary(features=[feat])
+    assert run.status == "untested"
+
+
 # ---------------------------------------------------------------------------
 # ReportOptions
 # ---------------------------------------------------------------------------

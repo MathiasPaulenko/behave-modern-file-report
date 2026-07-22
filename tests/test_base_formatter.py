@@ -40,6 +40,14 @@ class TestFormatter(BaseFileFormatter):
         self.write_calls.append((run_summary, options))
 
 
+class MockStreamOpener:
+    """Mock stream opener with a name attribute."""
+
+    def __init__(self, name: Any) -> None:
+        self.name = name
+        self.stream = None
+
+
 # ---------------------------------------------------------------------------
 # Mock helpers
 # ---------------------------------------------------------------------------
@@ -533,6 +541,18 @@ def test_resolve_logo_skipped_when_file_not_found() -> None:
     assert fmt._options.logo_b64 == ""
 
 
+def test_resolve_path_from_stream_opener() -> None:
+    """_resolve_path returns the stream opener name when available."""
+    fmt = TestFormatter(stream_opener=MockStreamOpener("custom_report.txt"))
+    assert fmt._resolve_path() == "custom_report.txt"
+
+
+def test_resolve_path_fallback_to_default() -> None:
+    """_resolve_path falls back to the formatter's default filename."""
+    fmt = TestFormatter(stream_opener=MockStreamOpener(None))
+    assert fmt._resolve_path() == TestFormatter._default_filename
+
+
 def test_resolve_logo_jpeg_mime(tmp_path: Any) -> None:
     """Logo resolution detects JPEG MIME type."""
     logo_data = b"\xff\xd8\xff\xe0"
@@ -570,6 +590,17 @@ def test_resolve_logo_skipped_for_non_image(tmp_path: Any) -> None:
     """Logo resolution is skipped when the file is not an image."""
     logo_file = tmp_path / "logo.txt"
     logo_file.write_text("not an image")
+
+    fmt = TestFormatter(config=_mock_config({"bmfr.logo": str(logo_file)}))
+    fmt._resolve_logo()
+
+    assert fmt._options.logo_b64 == ""
+
+
+def test_resolve_logo_skips_oversized_files(tmp_path: Any) -> None:
+    """Logo resolution skips files larger than the 5 MB limit."""
+    logo_file = tmp_path / "logo.png"
+    logo_file.write_bytes(b"\x89PNG" + b"x" * (5 * 1024 * 1024))
 
     fmt = TestFormatter(config=_mock_config({"bmfr.logo": str(logo_file)}))
     fmt._resolve_logo()

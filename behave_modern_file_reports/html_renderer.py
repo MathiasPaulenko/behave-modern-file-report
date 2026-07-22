@@ -16,6 +16,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from behave_modern_file_reports.models import ReportOptions, RunSummary
+from behave_modern_file_reports.utils import format_duration
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -29,7 +30,7 @@ _STATUS_ICONS: dict[str, str] = {
 
 
 def _format_duration(seconds: float) -> str:
-    """Format a duration in seconds as a human-readable string.
+    """Format a duration for HTML/PDF output.
 
     Args:
         seconds: Duration in seconds.
@@ -37,11 +38,7 @@ def _format_duration(seconds: float) -> str:
     Returns:
         Formatted string like ``"1.23s"``, ``"456ms"``, or ``"0ms"``.
     """
-    if seconds >= 1.0:
-        return f"{seconds:.2f}s"
-    if seconds >= 0.001:
-        return f"{seconds * 1000:.0f}ms"
-    return "0ms"
+    return format_duration(seconds, precision=2, zero_label="0ms")
 
 
 def _status_icon(status: str) -> str:
@@ -137,7 +134,10 @@ def render_html(
     env = _create_env(tdir)
 
     css_path = tdir / cname
-    css_content = css_path.read_text(encoding="utf-8") if css_path.exists() else ""
+    if css_path.exists():
+        css_content = css_path.read_text(encoding="utf-8", errors="replace")
+    else:
+        css_content = ""
 
     # Inject primary_color into CSS variables
     if opts.primary_color:

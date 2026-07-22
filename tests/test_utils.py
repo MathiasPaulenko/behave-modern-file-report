@@ -110,6 +110,17 @@ def test_format_duration_invalid() -> None:
     assert format_duration(float("inf")) == "N/A"
 
 
+def test_format_duration_precision() -> None:
+    """format_duration respects the precision parameter."""
+    assert format_duration(1.234, precision=2) == "1.23s"
+    assert format_duration(1.234, precision=1) == "1.2s"
+
+
+def test_format_duration_zero_label() -> None:
+    """format_duration uses the configured zero label."""
+    assert format_duration(0.0, zero_label="0ms") == "0ms"
+
+
 def test_normalize_status_passed() -> None:
     """normalize_status maps passed, xfailed and xpassed to passed."""
     assert normalize_status("passed") == STATUS_PASSED

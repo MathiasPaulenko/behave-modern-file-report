@@ -650,6 +650,22 @@ def test_attachment_with_image_shows_name_and_type() -> None:
     assert "bytes" in output
 
 
+def test_attachment_with_invalid_base64_shows_placeholder() -> None:
+    """Attachment with invalid base64 data does not crash the report."""
+    att = Attachment(
+        name="corrupt.png",
+        mime_type="image/png",
+        data_base64="not-valid-base64!!!",
+    )
+    step = _make_step(attachments=[att])
+    scn = _make_scenario(steps=[step])
+    feat = _make_feature(scenarios=[scn])
+    run = _make_run(features=[feat])
+    output = _write_report(run)
+    assert "corrupt.png" in output
+    assert "invalid base64" in output
+
+
 def test_attachment_with_text_shows_content() -> None:
     """Text attachment shows name, mime type, and text content."""
     att = Attachment(

@@ -176,8 +176,8 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         Args:
             step: A Behave ``Step`` object with status and duration.
         """
-        if self._collector._step_queue:
-            current_step = self._collector._step_queue[0]
+        current_step = self._collector.peek_current_step()
+        if current_step is not None:
             for attachment in self._attachment_buffer:
                 current_step.attachments.append(attachment)
             for message in self._log_buffer:
@@ -212,6 +212,18 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
     # Branding helpers
     # ------------------------------------------------------------------
 
+    def _resolve_path(self) -> str:
+        """Resolve the output path from the stream opener or default filename.
+
+        Returns:
+            The stream opener's ``name`` attribute, or ``self._default_filename``.
+        """
+        if self._stream_opener is not None:
+            name = getattr(self._stream_opener, "name", None)
+            if name is not None:
+                return str(name)
+        return str(getattr(self, "_default_filename", ""))
+
     def _resolve_logo(self) -> None:
         """Resolve the logo file path to a base64 data URI.
 
@@ -219,6 +231,8 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         the file is read and encoded as a base64 data URI in
         ``self._options.logo_b64``.
         """
+        _MAX_LOGO_SIZE_KB = 5 * 1024
+
         if self._options.logo_b64:
             return
         if not self._options.logo:
@@ -231,7 +245,12 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
             mime = "image/png"
         elif not mime.startswith("image/"):
             return
-        data = logo_path.read_bytes()
+        if logo_path.stat().st_size > _MAX_LOGO_SIZE_KB * 1024:
+            return
+        try:
+            data = logo_path.read_bytes()
+        except OSError:
+            return
         encoded = base64.b64encode(data).decode("ascii")
         self._options.logo_b64 = f"data:{mime};base64,{encoded}"
 

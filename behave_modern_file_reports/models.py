@@ -6,6 +6,7 @@ Pure dataclasses with ``slots=True`` and zero external dependencies.
 from __future__ import annotations
 
 import contextlib
+import re
 from dataclasses import dataclass, field
 
 from behave_modern_file_reports.utils import (
@@ -13,6 +14,7 @@ from behave_modern_file_reports.utils import (
     STATUS_PASSED,
     STATUS_SKIPPED,
     STATUS_UNDEFINED,
+    STATUS_UNTESTED,
     parse_bool,
     parse_color,
     parse_int,
@@ -237,14 +239,11 @@ class FeatureSummary:
     def derive_status(self) -> str:
         """Derive the feature status from its scenarios.
 
-        Returns:
-            ``"failed"`` if any scenario failed, ``"undefined"`` if any is
-            undefined (but none failed), ``"skipped"`` if any is skipped
-            (and none failed/undefined), ``"passed"`` if all passed,
-            ``"untested"`` if no scenarios.
+        Status precedence (worst wins):
+            ``"failed"`` > ``"undefined"`` > ``"skipped"`` > ``"untested"`` > ``"passed"``
         """
         if not self.scenarios:
-            return "untested"
+            return STATUS_UNTESTED
         statuses = {s.status for s in self.scenarios}
         if STATUS_FAILED in statuses:
             return STATUS_FAILED
@@ -252,6 +251,8 @@ class FeatureSummary:
             return STATUS_UNDEFINED
         if STATUS_SKIPPED in statuses:
             return STATUS_SKIPPED
+        if STATUS_UNTESTED in statuses:
+            return STATUS_UNTESTED
         return STATUS_PASSED
 
 
@@ -308,22 +309,18 @@ class Environment:
         git_branch = ""
         git_commit = ""
         try:
-            branch = subprocess.run(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            proc = subprocess.run(
+                ["git", "log", "-1", '--format=%H|%D'],
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=2,
+                timeout=3,
             )
-            git_branch = branch.stdout.strip()
-            commit = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=2,
-            )
-            git_commit = commit.stdout.strip()
+            commit, ref_names = proc.stdout.strip().split("|", 1)
+            git_commit = commit
+            match = re.search(r"HEAD -> ([^,]+)", ref_names)
+            if match:
+                git_branch = match.group(1).strip()
         except Exception:
             pass
 
@@ -420,20 +417,20 @@ class RunSummary:
     def status(self) -> str:
         """Return the overall run status.
 
-        Returns:
-            ``"failed"`` if any scenario failed, ``"undefined"`` if any is
-            undefined, ``"skipped"`` if all skipped, ``"passed"`` if all
-            passed, ``"untested"`` if no scenarios.
+        Status precedence (worst wins):
+            ``"failed"`` > ``"undefined"`` > ``"skipped"`` > ``"untested"`` > ``"passed"``
         """
         if not self.features:
-            return "untested"
+            return STATUS_UNTESTED
         statuses = {f.derive_status() for f in self.features}
         if STATUS_FAILED in statuses:
             return STATUS_FAILED
         if STATUS_UNDEFINED in statuses:
             return STATUS_UNDEFINED
-        if statuses == {STATUS_SKIPPED}:
+        if STATUS_SKIPPED in statuses:
             return STATUS_SKIPPED
+        if STATUS_UNTESTED in statuses:
+            return STATUS_UNTESTED
         return STATUS_PASSED
 
 

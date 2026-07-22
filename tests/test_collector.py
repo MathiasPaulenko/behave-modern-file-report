@@ -273,6 +273,19 @@ def test_start_step_creates_tracker() -> None:
     assert col._step_queue[0].status == "untested"
 
 
+def test_peek_current_step() -> None:
+    """peek_current_step returns the queued step without removing it."""
+    col = Collector()
+    assert col.peek_current_step() is None
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="step 1"))
+    current = col.peek_current_step()
+    assert current is not None
+    assert current.name == "step 1"
+    assert len(col._step_queue) == 1
+
+
 def test_end_step_appends_to_scenario() -> None:
     """end_step appends the step to the current scenario."""
     col = Collector()
@@ -493,14 +506,26 @@ def test_scenario_undefined_step() -> None:
     assert col._current_feature.scenarios[0].status == "undefined"
 
 
-def test_scenario_no_steps_is_undefined() -> None:
-    """A scenario with no steps derives undefined status."""
+def test_scenario_no_steps_is_untested() -> None:
+    """A scenario with no steps derives untested status."""
     col = Collector()
     col.start_feature(_mock_feature(name="F1"))
     col.start_scenario(_mock_scenario(name="S1"))
     col.end_scenario()
     assert col._current_feature is not None
-    assert col._current_feature.scenarios[0].status == "undefined"
+    assert col._current_feature.scenarios[0].status == "untested"
+
+
+def test_scenario_untested_steps_derive_untested() -> None:
+    """A scenario with only untested steps derives untested status."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="s1"))
+    col.end_step(_mock_step(name="s1", status="untested"))
+    col.end_scenario()
+    assert col._current_feature is not None
+    assert col._current_feature.scenarios[0].status == "untested"
 
 
 def test_scenario_failed_takes_precedence_over_undefined() -> None:
@@ -756,6 +781,7 @@ def test_traceback_truncation() -> None:
     lines = step.error.traceback.splitlines()
     assert len(lines) == 11  # 10 lines + truncation marker
     assert "truncated" in lines[-1]
+    assert "90 lines truncated" in lines[-1]
 
 
 def test_traceback_no_truncation_when_within_limit() -> None:

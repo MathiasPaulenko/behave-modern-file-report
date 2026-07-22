@@ -113,14 +113,20 @@ def now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def format_duration(seconds: float) -> str:
+def format_duration(
+    seconds: float,
+    precision: int = 3,
+    zero_label: str = "0s",
+) -> str:
     """Format a duration in seconds as a human-readable string.
 
     Args:
         seconds: Duration in seconds. Must be non-negative.
+        precision: Decimal places for durations of one second or more.
+        zero_label: Label used for durations smaller than one millisecond.
 
     Returns:
-        A string like ``"1.234s"``, ``"12ms"`` or ``"0s"``. Returns ``"N/A"``
+        A string like ``"1.234s"``, ``"12ms"`` or *zero_label*. Returns ``"N/A"``
         for negative, NaN, or infinite values.
 
     Examples:
@@ -134,10 +140,10 @@ def format_duration(seconds: float) -> str:
     if seconds < 0 or math.isnan(seconds) or math.isinf(seconds):
         return "N/A"
     if seconds < 0.001:
-        return "0s"
+        return zero_label
     if seconds < 1.0:
         return f"{int(seconds * 1000)}ms"
-    return f"{seconds:.3f}s"
+    return f"{seconds:.{precision}f}s"
 
 
 # ---------------------------------------------------------------------------

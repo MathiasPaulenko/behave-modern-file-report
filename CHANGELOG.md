@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BaseFileFormatter._resolve_logo` now rejects non-image files instead of forcing `image/png` on them.
 - `DOCXWriter` bookmarks and TOC links now escape bookmark names/anchors to avoid invalid XML.
 - `PDFWriter` and the HTML template now derive the feature status with `FeatureSummary.derive_status()` instead of relying on a manually-set `status` field.
+- `Collector._extract_error` now reports the correct number of truncated traceback lines.
+- `Collector`/`FeatureSummary`/`RunSummary` status derivation now correctly handles `untested` status in addition to passed/failed/undefined/skipped.
+- `Environment.capture` now performs a single git command to retrieve branch and commit, reducing blocking time.
+- `BaseFileFormatter._resolve_logo` now skips oversized logo files and tolerates read errors.
+- `attach_file` and `attach_screenshot` now check file size before reading and skip missing or oversized files without crashing.
+- `TXTWriter` now tolerates invalid base64 attachment data.
+- `html_renderer` now tolerates CSS files with invalid UTF-8 sequences.
+- `BaseFileFormatter` now exposes `_resolve_path` and `_resolve_logo`, removing duplicated path resolution in `DOCXFormatter` and `PDFFormatter`.
+- `Collector` now exposes `peek_current_step` so `BaseFileFormatter` no longer accesses the private `_step_queue` directly.
+- Duration formatting is now unified through `utils.format_duration` with configurable precision, eliminating duplicated implementations in HTML/PDF/TXT.
 
 ## [1.0.0] - 2026-07-22
 

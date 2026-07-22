@@ -150,6 +150,29 @@ def _make_attachment_from_file(path: str | Path, name: str | None = None) -> Att
     return _make_attachment_from_bytes(data, file_name)
 
 
+def _read_file_bytes(path: str | Path, max_size_kb: int = 0) -> bytes:
+    """Read *path* into memory with optional size and I/O protection.
+
+    Args:
+        path: The file to read.
+        max_size_kb: If greater than zero, files larger than this are skipped
+            and an empty ``bytes`` object is returned.
+
+    Returns:
+        The file contents, or empty bytes if the file is missing, unreadable,
+        or exceeds the optional size limit.
+    """
+    try:
+        p = Path(path)
+        if not p.is_file():
+            return b""
+        if max_size_kb > 0 and p.stat().st_size > max_size_kb * 1024:
+            return b""
+        return p.read_bytes()
+    except OSError:
+        return b""
+
+
 # ---------------------------------------------------------------------------
 # Size enforcement
 # ---------------------------------------------------------------------------
@@ -200,12 +223,14 @@ def _is_pil_image(obj: Any) -> bool:
     return hasattr(obj, "save") and hasattr(obj, "format") and hasattr(obj, "size")
 
 
-def _capture_screenshot(source: Any) -> bytes:
+def _capture_screenshot(source: Any, max_size_kb: int = 0) -> bytes:
     """Capture PNG bytes from various screenshot sources.
 
     Args:
         source: One of bytes, str/Path (file path), Selenium driver,
             Playwright page, or PIL Image.
+        max_size_kb: Optional size limit for file-path sources. Files larger
+            than this are skipped and an empty ``bytes`` object is returned.
 
     Returns:
         PNG image data as bytes.
@@ -214,7 +239,7 @@ def _capture_screenshot(source: Any) -> bytes:
         return source
 
     if isinstance(source, str | Path):
-        return Path(source).read_bytes()
+        return _read_file_bytes(source, max_size_kb)
 
     if _is_selenium_driver(source):
         return source.screenshot_as_png  # type: ignore[no-any-return]
@@ -264,8 +289,8 @@ def attach_screenshot(
     if source is None:
         return
 
-    data = _capture_screenshot(source)
     max_kb = _get_max_size_kb(fmt)
+    data = _capture_screenshot(source, max_kb)
     data = _check_size(data, max_kb)
     if not data:
         return
@@ -292,8 +317,8 @@ def attach_file(
 
     p = Path(path)
     file_name = name or p.name
-    data = p.read_bytes()
     max_kb = _get_max_size_kb(fmt)
+    data = _read_file_bytes(p, max_kb)
     data = _check_size(data, max_kb)
     if not data:
         return
