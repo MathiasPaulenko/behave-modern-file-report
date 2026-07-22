@@ -51,16 +51,20 @@ jobs:
         id: tag_check
         run: |
           TAG="v${{ steps.version.outputs.version }}"
+          HEAD_SHA="${{ github.sha }}"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
+            TAG_REF=$(git rev-parse "$TAG^{commit}" | tr -d '\n')
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "tag_ref=$(git rev-parse "$TAG^{commit}")" >> "$GITHUB_OUTPUT"
+            echo "tag_ref=$TAG_REF" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG exists and points to $TAG_REF (HEAD is $HEAD_SHA)"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
             echo "tag_ref=" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG does not exist"
           fi
 
       - name: Create Git tag
-        if: steps.tag_check.outputs.exists == 'false'
+        if: ${{ steps.tag_check.outputs.exists == 'false' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -68,11 +72,11 @@ jobs:
           git push origin "v${{ steps.version.outputs.version }}"
 
       - name: Publish to PyPI
-        if: steps.tag_check.outputs.exists == 'false' || steps.tag_check.outputs.tag_ref == github.sha
+        if: ${{ steps.tag_check.outputs.exists == 'false' || steps.tag_check.outputs.tag_ref == github.sha }}
         uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Create GitHub Release
-        if: always() && (steps.tag_check.outputs.exists == 'false' || steps.tag_check.outputs.tag_ref == github.sha)
+        if: ${{ always() && (steps.tag_check.outputs.exists == 'false' || steps.tag_check.outputs.tag_ref == github.sha) }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ steps.version.outputs.version }}"
