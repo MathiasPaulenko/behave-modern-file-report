@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test Report</title>
+  <style>:root {
+  --color-primary: #2563EB;
+  --color-primary-dark: #1E40AF;
+  --color-text: #1F2937;
+  --color-text-muted: #6B7280;
+  --color-border: #E5E7EB;
+  --color-background: #FFFFFF;
+  --color-surface: #F9FAFB;
+  --status-passed: #10B981;
+  --status-failed: #EF4444;
+  --status-skipped: #F59E0B;
+  --status-undefined: #9CA3AF;
+}
+
+@page {
+  size: A4;
+  margin: 25mm 20mm 25mm 20mm;
+  @top-right {
+    content: string(doctitle);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 9pt;
+    color: var(--color-text-muted);
+  }
+  @bottom-center {
+    content: counter(page);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 9pt;
+    color: var(--color-text-muted);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, &#34;Segoe UI&#34;, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-background);
+}
+
+h1, h2, h3, h4 {
+  color: var(--color-text);
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  page-break-after: avoid;
+}
+
+.section-title {
+  font-family: &#34;Source Serif 4&#34;, Georgia, serif;
+  font-size: 18pt;
+  color: var(--color-primary-dark);
+  border-bottom: 2px solid var(--color-primary);
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+  string-set: doctitle content();
+}
+
+.page-break {
+  break-before: page;
+}
+
+/* Cover */
+.cover {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 80vh;
+}
+
+.cover-logo {
+  max-height: 60px;
+  margin-bottom: 24px;
+}
+
+.cover-title {
+  font-size: 28pt;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.cover-subtitle {
+  font-size: 14pt;
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+}
+
+.cover-line {
+  width: 100%;
+  height: 2px;
+  background: var(--color-primary);
+  border: none;
+  margin: 8px 0 24px 0;
+}
+
+.cover-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.cover-meta div {
+  font-size: 11pt;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.cover-meta span {
+  color: var(--color-text-muted);
+  display: inline-block;
+  min-width: 90px;
+}
+
+.cover-progress {
+  width: 100%;
+  height: 12px;
+  background: var(--color-surface);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.cover-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+
+.cover-footer {
+  margin-top: auto;
+  font-size: 9pt;
+  color: var(--color-text-muted);
+}
+
+/* TOC */
+.toc ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.toc li {
+  margin: 6px 0;
+}
+
+.toc li ul {
+  padding-left: 20px;
+}
+
+.toc a {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.toc a::after {
+  content: leader(&#39;.&#39;) target-counter(attr(href url), page);
+  color: var(--color-text-muted);
+}
+
+/* Summary */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  padding: 16px 8px;
+  background: var(--color-surface);
+  border-radius: 6px;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.summary-card.passed { border-top: 4px solid var(--status-passed); }
+.summary-card.failed { border-top: 4px solid var(--status-failed); }
+.summary-card.skipped { border-top: 4px solid var(--status-skipped); }
+
+.summary-number {
+  display: block;
+  font-size: 22pt;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.summary-label {
+  font-size: 9pt;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 18px 0;
+  font-size: 10pt;
+  table-layout: fixed;
+}
+
+th, td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+th {
+  background: var(--color-surface);
+  font-weight: 600;
+  color: var(--color-primary-dark);
+}
+
+tr:nth-child(even) {
+  background: #FAFBFC;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-passed { background: #D1FAE5; color: #065F46; }
+.badge-failed { background: #FEE2E2; color: #991B1B; }
+.badge-skipped { background: #FEF3C7; color: #92400E; }
+.badge-undefined { background: #F3F4F6; color: #4B5563; }
+
+/* Status icons */
+.status-icon {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+  line-height: 22px;
+  vertical-align: middle;
+}
+
+.status-passed { background: var(--status-passed); }
+.status-failed { background: var(--status-failed); }
+.status-skipped { background: var(--status-skipped); }
+.status-undefined { background: var(--status-undefined); }
+
+/* Feature / Scenario */
+.feature {
+  margin-bottom: 32px;
+}
+
+.feature-header,
+.scenario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  page-break-after: avoid;
+}
+
+.feature-header h1 {
+  margin-bottom: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.scenario-header h2 {
+  font-size: 14pt;
+  margin-bottom: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.feature-description {
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.tags {
+  font-size: 9pt;
+  color: var(--color-primary);
+  margin-bottom: 12px;
+}
+
+.tags::before {
+  content: &#34;@&#34;;
+  margin-right: 2px;
+}
+
+.scenario {
+  margin: 24px 0 32px 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-background);
+  page-break-inside: avoid;
+}
+
+.scenario-meta {
+  font-size: 9pt;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.scenario-meta span {
+  margin-right: 12px;
+}
+
+/* Step table */
+.step-table th:first-child,
+.step-table td:first-child {
+  width: 8%;
+  text-align: center;
+}
+
+.step-table th:nth-child(2),
+.step-table td:nth-child(2) {
+  width: 77%;
+}
+
+.step-table th:nth-child(3),
+.step-table td:nth-child(3) {
+  width: 15%;
+  text-align: right;
+}
+
+.step-table .step-failed {
+  background: #FEF2F2;
+}
+
+/* Summary table */
+.summary-table th:nth-child(1),
+.summary-table td:nth-child(1) { width: 28%; }
+.summary-table th:nth-child(2),
+.summary-table td:nth-child(2) { width: 12%; }
+.summary-table th:nth-child(3),
+.summary-table td:nth-child(3) { width: 12%; }
+.summary-table th:nth-child(4),
+.summary-table td:nth-child(4) { width: 12%; }
+.summary-table th:nth-child(5),
+.summary-table td:nth-child(5) { width: 12%; }
+.summary-table th:nth-child(6),
+.summary-table td:nth-child(6) { width: 12%; }
+.summary-table th:nth-child(7),
+.summary-table td:nth-child(7) { width: 12%; }
+
+/* Data table (environment) */
+.data-table td:nth-child(2) {
+  word-break: break-all;
+}
+
+/* Error block */
+.error-block {
+  background: #FEF2F2;
+  border-left: 4px solid var(--status-failed);
+  padding: 12px;
+  margin: 16px 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.error-block h4 {
+  color: var(--status-failed);
+  margin-top: 0;
+}
+
+.error-block pre {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  font-family: &#34;Fira Code&#34;, Consolas, Monaco, monospace;
+  font-size: 9pt;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Attachments */
+.attachments {
+  margin-top: 16px;
+}
+
+.attachments h4 {
+  color: var(--color-primary-dark);
+}
+
+.attachments ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.attachments li {
+  margin-bottom: 12px;
+}
+
+.attachments img {
+  max-width: 100%;
+  max-height: 400px;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  display: block;
+}
+
+.attachments figcaption {
+  font-size: 9pt;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.attachment-name {
+  font-weight: 600;
+  font-size: 10pt;
+}
+
+.attachments pre {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  font-family: &#34;Fira Code&#34;, Consolas, Monaco, monospace;
+  font-size: 9pt;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Data table (environment) */
+.data-table td:first-child {
+  width: 30%;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+}
+
+.data-table td {
+  border: 1px solid var(--color-border);
+}
+
+/* Utility */
+code, pre code {
+  font-family: &#34;Fira Code&#34;, Consolas, Monaco, monospace;
+  background: var(--color-surface);
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-size: 9pt;
+  word-break: break-word;
+}
+
+figure {
+  margin: 0;
+}
+
+/* Background steps */
+.background {
+  margin: 12px 0 20px 0;
+  padding: 12px;
+  background: var(--color-surface);
+  border-radius: 6px;
+}
+
+.background h3 {
+  font-size: 11pt;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+/* Logs */
+.logs {
+  margin-top: 16px;
+}
+
+.logs h4 {
+  color: var(--color-primary-dark);
+}
+
+.logs pre {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  font-family: &#34;Fira Code&#34;, Consolas, Monaco, monospace;
+  font-size: 9pt;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Feature location */
+.feature-location {
+  font-size: 9pt;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+</style>
+</head>
+<body>
+
+  <!-- Cover page -->
+  <section class="cover">
+    <h1 class="cover-title">Test Report</h1>
+    <p class="cover-subtitle">My Project</p>
+    <hr class="cover-line" />
+    <div class="cover-meta">
+      <div><span>Started:</span> 2025-01-01T10:00:00+00:00</div>
+      <div><span>Duration:</span> 5.00s</div>
+      <div><span>Scenarios:</span> 2</div>
+      <div><span>Passed:</span> 1</div>
+      <div><span>Failed:</span> 1</div>
+      <div><span>Skipped:</span> 0</div>
+      <div><span>Pass rate:</span> 50.0%</div>
+    </div>
+    <div class="cover-progress">
+      <div class="cover-progress-bar" style="width: 50.0%"></div>
+    </div>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- Table of contents -->
+  <section class="toc">
+    <h1 class="section-title">Table of contents</h1>
+    <ul>
+      <li><a href="#summary">Executive summary</a></li>
+      <li><a href="#environment">Environment</a></li>
+      <li>
+        <a href="#feature-1">Login</a>
+        <ul>
+          <li><a href="#scenario-0-1">Successful login</a></li>
+          <li><a href="#scenario-1-2">Failed login</a></li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- Executive summary -->
+  <section id="summary" class="summary">
+    <h1 class="section-title">Executive summary</h1>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <span class="summary-number">2</span>
+        <span class="summary-label">Scenarios</span>
+      </div>
+      <div class="summary-card passed">
+        <span class="summary-number">1</span>
+        <span class="summary-label">Passed</span>
+      </div>
+      <div class="summary-card failed">
+        <span class="summary-number">1</span>
+        <span class="summary-label">Failed</span>
+      </div>
+      <div class="summary-card skipped">
+        <span class="summary-number">0</span>
+        <span class="summary-label">Skipped</span>
+      </div>
+    </div>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Scenarios</th>
+          <th>Passed</th>
+          <th>Failed</th>
+          <th>Skipped</th>
+          <th>Pass rate</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Login</td>
+          <td>2</td>
+          <td>1</td>
+          <td>1</td>
+          <td>0</td>
+          <td>50.0%</td>
+          <td>260ms</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- Environment -->
+  <section id="environment" class="environment">
+    <h1 class="section-title">Environment</h1>
+    <table class="data-table">
+      <tbody>
+        <tr><td>Python</td><td>3.12.0</td></tr>
+        <tr><td>Behave</td><td></td></tr>
+        <tr><td>Platform</td><td>linux</td></tr>
+        <tr><td>Hostname</td><td>test-host</td></tr>
+        <tr><td>Working directory</td><td></td></tr>
+        <tr><td>Command</td><td><code></code></td></tr>
+        <tr><td>User</td><td></td></tr>
+        <tr><td>Git branch</td><td></td></tr>
+        <tr><td>Git commit</td><td></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Features -->
+  <div class="page-break"></div>
+  <section class="feature" id="feature-1">
+    <header class="feature-header">
+      <h1 class="section-title">Login</h1>
+      <span class="badge badge-failed">failed</span>
+    </header>
+    <p class="feature-location">features/login.feature:1</p>
+    <p class="feature-description">User authentication feature</p>
+    <div class="tags">auth</div>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Total</th>
+          <th>Passed</th>
+          <th>Failed</th>
+          <th>Skipped</th>
+          <th>Undefined</th>
+          <th>Pass rate</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2</td>
+          <td>1</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>50.0%</td>
+          <td>260ms</td>
+        </tr>
+      </tbody>
+    </table>
+
+
+    <section class="scenario" id="scenario-0-1">
+      <header class="scenario-header">
+        <h2>Successful login</h2>
+        <span class="badge badge-passed">passed</span>
+      </header>
+      <div class="scenario-meta">
+        <span>Location: features/login.feature:5</span>
+        <span>Duration: 180ms</span>
+        <span class="tags">smoke</span>
+      </div>
+
+
+      <table class="step-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Step</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="step-passed">
+            <td><span class="status-icon status-passed">✓</span></td>
+            <td><strong>Given</strong> the user is on the login page</td>
+            <td>50ms</td>
+          </tr>
+          <tr class="step-passed">
+            <td><span class="status-icon status-passed">✓</span></td>
+            <td><strong>When</strong> the user enters valid credentials</td>
+            <td>100ms</td>
+          </tr>
+          <tr class="step-passed">
+            <td><span class="status-icon status-passed">✓</span></td>
+            <td><strong>Then</strong> the user should see the dashboard</td>
+            <td>30ms</td>
+          </tr>
+        </tbody>
+      </table>
+
+
+
+    </section>
+    <section class="scenario" id="scenario-1-2">
+      <header class="scenario-header">
+        <h2>Failed login</h2>
+        <span class="badge badge-failed">failed</span>
+      </header>
+      <div class="scenario-meta">
+        <span>Location: features/login.feature:13</span>
+        <span>Duration: 80ms</span>
+        <span class="tags">regression</span>
+      </div>
+
+
+      <table class="step-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Step</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="step-passed">
+            <td><span class="status-icon status-passed">✓</span></td>
+            <td><strong>Given</strong> the user is on the login page</td>
+            <td>50ms</td>
+          </tr>
+          <tr class="step-failed">
+            <td><span class="status-icon status-failed">✗</span></td>
+            <td><strong>When</strong> the user enters invalid credentials</td>
+            <td>80ms</td>
+          </tr>
+        </tbody>
+      </table>
+
+
+
+    </section>
+  </section>
+
+</body>
+</html>

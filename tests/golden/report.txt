@@ -1,0 +1,52 @@
+====================================================================================================
+                                            Test Report                                             
+                                             My Project                                             
+====================================================================================================
+
+Run ID:     run-001
+Start:      2025-01-01T10:00:00+00:00
+End:        2025-01-01T10:00:05+00:00
+Duration:   5.000s
+Status:     FAILED
+
+----------------------------------------------------------------------------------------------------
+SUMMARY
+----------------------------------------------------------------------------------------------------
+
+Features:    1
+Scenarios:   2
+  Passed:    1
+  Failed:    1
+  Skipped:    0
+  Undefined:  0
+Pass rate:   50.0%
+
+----------------------------------------------------------------------------------------------------
+✗ FEATURE: Login
+   Location: features/login.feature:1
+   Tags: auth
+   User authentication feature
+----------------------------------------------------------------------------------------------------
+
+   ✓ PASSED: Successful login
+      Location: features/login.feature:5
+      Tags: smoke
+      Duration: 180ms
+
+      ✓ Given the user is on the login page (50ms)
+      ✓ When the user enters valid credentials (100ms)
+      ✓ Then the user should see the dashboard (30ms)
+
+   ✗ FAILED: Failed login
+      Location: features/login.feature:13
+      Tags: regression
+      Duration: 80ms
+
+      ✓ Given the user is on the login page (50ms)
+      ✗ When the user enters invalid credentials (80ms)
+         ERROR (AssertionError): Invalid credentials error
+           Traceback (most recent call last):
+             File features/login.feature:15
+           AssertionError
+
+
