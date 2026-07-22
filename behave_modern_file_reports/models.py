@@ -507,11 +507,17 @@ class ReportOptions:
                     return fmt_val
             return data.get(f"{prefix}{key}")
 
+        raw_color = resolve("primary_color")
+        try:
+            primary_color = parse_color(raw_color)
+        except ValueError:
+            primary_color = "#2563EB"
+
         return cls(
             only_failed=parse_bool(resolve("only_failed")),
             template=resolve("template") or "",
             logo=resolve("logo") or "",
-            primary_color=parse_color(resolve("primary_color")),
+            primary_color=primary_color,
             title=resolve("title") or "Behave Modern Report",
             project_name=resolve("project_name") or "",
             include_attachments=parse_bool(resolve("include_attachments")),

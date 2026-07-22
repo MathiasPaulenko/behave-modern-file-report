@@ -11,6 +11,7 @@ from behave_modern_file_reports.attachments import (
 __version__ = "1.0.0"
 
 __all__ = [
+    "__version__",
     "attach_file",
     "attach_json",
     "attach_screenshot",

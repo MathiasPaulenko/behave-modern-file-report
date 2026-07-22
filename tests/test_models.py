@@ -448,6 +448,12 @@ def test_report_options_from_dict_global() -> None:
     assert opts.pdf_engine == "reportlab"
 
 
+def test_report_options_from_dict_invalid_color_falls_back() -> None:
+    """from_dict falls back to the default color when primary_color is invalid."""
+    opts = ReportOptions.from_dict({"bmfr.primary_color": "not-a-color"})
+    assert opts.primary_color == "#2563EB"
+
+
 def test_report_options_from_dict_format_override() -> None:
     """from_dict resolves format-specific overrides over global keys."""
     opts = ReportOptions.from_dict(
