@@ -16,17 +16,9 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from behave_modern_file_reports.models import ReportOptions, RunSummary
-from behave_modern_file_reports.utils import format_duration
+from behave_modern_file_reports.utils import STATUS_ICONS, format_duration
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
-
-_STATUS_ICONS: dict[str, str] = {
-    "passed": "✓",
-    "failed": "✗",
-    "skipped": "↷",
-    "undefined": "?",
-    "untested": "○",
-}
 
 
 def _format_duration(seconds: float) -> str:
@@ -50,7 +42,7 @@ def _status_icon(status: str) -> str:
     Returns:
         Icon character, or ``"?"`` for unknown statuses.
     """
-    return _STATUS_ICONS.get(status, "?")
+    return STATUS_ICONS.get(status, "?")
 
 
 def _create_env(template_dir: Path | None = None) -> Environment:

@@ -23,6 +23,43 @@ STATUS_SKIPPED = "skipped"
 STATUS_UNDEFINED = "undefined"
 STATUS_UNTESTED = "untested"
 
+STATUS_ICONS: dict[str, str] = {
+    STATUS_PASSED: "✓",
+    STATUS_FAILED: "✗",
+    STATUS_SKIPPED: "↷",
+    STATUS_UNDEFINED: "?",
+    STATUS_UNTESTED: "○",
+}
+
+STATUS_LABELS: dict[str, str] = {
+    STATUS_PASSED: "PASSED",
+    STATUS_FAILED: "FAILED",
+    STATUS_SKIPPED: "SKIPPED",
+    STATUS_UNDEFINED: "UNDEFINED",
+    STATUS_UNTESTED: "UNTESTED",
+}
+
+STATUS_COLORS: dict[str, str] = {
+    STATUS_PASSED: "#10B981",
+    STATUS_FAILED: "#EF4444",
+    STATUS_SKIPPED: "#F59E0B",
+    STATUS_UNDEFINED: "#9CA3AF",
+}
+
+
+def hex_to_rgb(color: str) -> tuple[int, int, int]:
+    """Convert a ``#RRGGBB`` hex color to an RGB triple.
+
+    Args:
+        color: A ``#RRGGBB`` or ``RRGGBB`` color string.
+
+    Returns:
+        A tuple ``(r, g, b)`` with integer components in the range 0-255.
+    """
+    text = color.lstrip("#").lower()
+    return int(text[0:2], 16), int(text[2:4], 16), int(text[4:6], 16)
+
+
 _MAX_STR_LENGTH = 500
 
 

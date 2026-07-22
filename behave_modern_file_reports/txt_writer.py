@@ -21,6 +21,7 @@ from behave_modern_file_reports.models import (
 )
 from behave_modern_file_reports.utils import (
     STATUS_FAILED,
+    STATUS_LABELS,
     STATUS_PASSED,
     STATUS_SKIPPED,
     STATUS_UNDEFINED,
@@ -40,13 +41,6 @@ _STATUS_ICONS_ASCII: dict[str, str] = {
     STATUS_FAILED: "[FAIL]",
     STATUS_SKIPPED: "[SKIP]",
     STATUS_UNDEFINED: "[????]",
-}
-
-_STATUS_LABELS: dict[str, str] = {
-    STATUS_PASSED: "PASSED",
-    STATUS_FAILED: "FAILED",
-    STATUS_SKIPPED: "SKIPPED",
-    STATUS_UNDEFINED: "UNDEFINED",
 }
 
 
@@ -104,7 +98,7 @@ class TXTWriter:
             f"Start:      {run.start_time}",
             f"End:        {run.end_time}",
             f"Duration:   {format_duration(run.duration)}",
-            f"Status:     {_STATUS_LABELS.get(run.status, run.status.upper())}",
+            f"Status:     {STATUS_LABELS.get(run.status, run.status.upper())}",
         ]
         for line in meta_lines:
             stream.write(line)
@@ -196,7 +190,7 @@ class TXTWriter:
     def _write_scenario(self, scenario: ScenarioResult, stream: TextIO) -> None:
         """Write a scenario section with its steps."""
         icon = self._icons.get(scenario.status, "?")
-        label = _STATUS_LABELS.get(scenario.status, scenario.status.upper())
+        label = STATUS_LABELS.get(scenario.status, scenario.status.upper())
 
         outline_tag = ""
         if scenario.is_outline:

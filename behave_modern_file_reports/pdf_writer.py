@@ -33,43 +33,29 @@ from behave_modern_file_reports.models import (
     ScenarioResult,
     Step,
 )
-from behave_modern_file_reports.utils import format_duration
+from behave_modern_file_reports.utils import (
+    STATUS_COLORS,
+    STATUS_FAILED,
+    STATUS_ICONS,
+    STATUS_LABELS,
+    format_duration,
+    hex_to_rgb,
+)
 
 # ---------------------------------------------------------------------------
 # Design tokens (shared with WeasyPrint CSS)
 # ---------------------------------------------------------------------------
 
-_PRIMARY = (0x25, 0x63, 0xEB)
-_PRIMARY_DARK = (0x1E, 0x40, 0xAF)
-_TEXT = (0x1F, 0x29, 0x37)
-_TEXT_MUTED = (0x6B, 0x72, 0x80)
-_BORDER = (0xE5, 0xE7, 0xEB)
-_SURFACE = (0xF9, 0xFA, 0xFB)
-_STATUS_PASSED = (0x10, 0xB9, 0x81)
-_STATUS_FAILED = (0xEF, 0x44, 0x44)
-_STATUS_SKIPPED = (0xF5, 0x9E, 0x0B)
-_STATUS_UNDEFINED = (0x9C, 0xA3, 0xAF)
-_ERROR_BG = (0xFE, 0xF2, 0xF2)
+_PRIMARY = hex_to_rgb("#2563EB")
+_PRIMARY_DARK = hex_to_rgb("#1E40AF")
+_TEXT = hex_to_rgb("#1F2937")
+_TEXT_MUTED = hex_to_rgb("#6B7280")
+_BORDER = hex_to_rgb("#E5E7EB")
+_SURFACE = hex_to_rgb("#F9FAFB")
+_ERROR_BG = hex_to_rgb("#FEF2F2")
 
 _STATUS_COLORS: dict[str, tuple[int, int, int]] = {
-    "passed": _STATUS_PASSED,
-    "failed": _STATUS_FAILED,
-    "skipped": _STATUS_SKIPPED,
-    "undefined": _STATUS_UNDEFINED,
-}
-
-_STATUS_LABELS: dict[str, str] = {
-    "passed": "PASSED",
-    "failed": "FAILED",
-    "skipped": "SKIPPED",
-    "undefined": "UNDEFINED",
-}
-
-_STATUS_ICONS: dict[str, str] = {
-    "passed": "✓",
-    "failed": "✗",
-    "skipped": "↷",
-    "undefined": "?",
+    k: hex_to_rgb(v) for k, v in STATUS_COLORS.items()
 }
 
 
@@ -499,7 +485,7 @@ class ReportLabWriter:
 
         story.append(Paragraph(_escape(feature.name), style_h1))
         feature_status = feature.derive_status()
-        status_label = _STATUS_LABELS.get(feature_status, feature_status.upper())
+        status_label = STATUS_LABELS.get(feature_status, feature_status.upper())
         status_color = _STATUS_COLORS.get(feature_status, _TEXT_MUTED)
         story.append(Paragraph(
             f'<font color="#{status_color[0]:02X}{status_color[1]:02X}{status_color[2]:02X}">'
@@ -572,7 +558,7 @@ class ReportLabWriter:
             name += " [OUTLINE]"
         story.append(Paragraph(name, style_h2))
 
-        status_label = _STATUS_LABELS.get(scenario.status, scenario.status.upper())
+        status_label = STATUS_LABELS.get(scenario.status, scenario.status.upper())
         status_color = _STATUS_COLORS.get(scenario.status, _TEXT_MUTED)
         story.append(Paragraph(
             f'<font color="#{status_color[0]:02X}{status_color[1]:02X}{status_color[2]:02X}">'
@@ -664,8 +650,8 @@ class ReportLabWriter:
              Paragraph("Duration", cell_styles["header"])],
         ]
         for step in steps:
-            icon = _STATUS_ICONS.get(step.status, "?")
-            label = _STATUS_LABELS.get(step.status, step.status.upper())
+            icon = STATUS_ICONS.get(step.status, "?")
+            label = STATUS_LABELS.get(step.status, step.status.upper())
             data.append([
                 Paragraph(f"{_escape(icon)} {_escape(label)}", cell_styles["muted"]),
                 _step_paragraph(step, cell_styles["cell"]),
@@ -713,7 +699,7 @@ class ReportLabWriter:
             ("RIGHTPADDING", (0, 0), (-1, -1), 12),
             ("TOPPADDING", (0, 0), (-1, -1), 8),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("LINEBEFORE", (0, 0), (0, -1), 3, _rl(_STATUS_FAILED)),
+            ("LINEBEFORE", (0, 0), (0, -1), 3, _rl(_STATUS_COLORS[STATUS_FAILED])),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ]))
         story.append(error_table)

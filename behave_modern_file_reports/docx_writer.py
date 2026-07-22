@@ -35,19 +35,19 @@ from behave_modern_file_reports.models import (
     Step,
 )
 from behave_modern_file_reports.utils import (
+    STATUS_COLORS,
     STATUS_FAILED,
+    STATUS_LABELS,
     STATUS_PASSED,
     STATUS_SKIPPED,
     STATUS_UNDEFINED,
     format_duration,
+    hex_to_rgb,
 )
 
 # Status colors (RGB)
 _STATUS_COLORS: dict[str, RGBColor] = {
-    STATUS_PASSED: RGBColor(0x10, 0xB9, 0x81),
-    STATUS_FAILED: RGBColor(0xEF, 0x44, 0x44),
-    STATUS_SKIPPED: RGBColor(0xF5, 0x9E, 0x0B),
-    STATUS_UNDEFINED: RGBColor(0x9C, 0xA3, 0xAF),
+    k: RGBColor(*hex_to_rgb(v)) for k, v in STATUS_COLORS.items()
 }
 
 _STATUS_ICONS: dict[str, str] = {
@@ -55,13 +55,6 @@ _STATUS_ICONS: dict[str, str] = {
     STATUS_FAILED: "\u2717",
     STATUS_SKIPPED: "\u2298",
     STATUS_UNDEFINED: "?",
-}
-
-_STATUS_LABELS: dict[str, str] = {
-    STATUS_PASSED: "PASSED",
-    STATUS_FAILED: "FAILED",
-    STATUS_SKIPPED: "SKIPPED",
-    STATUS_UNDEFINED: "UNDEFINED",
 }
 
 _DEFAULT_PRIMARY = RGBColor(0x25, 0x63, 0xEB)
@@ -81,8 +74,7 @@ def _hex_to_rgb(hex_color: str) -> RGBColor:
     Returns:
         ``RGBColor`` instance.
     """
-    h = hex_color.lstrip("#")
-    return RGBColor(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+    return RGBColor(*hex_to_rgb(hex_color))
 
 
 def _darken(hex_color: str, factor: float = 0.8) -> RGBColor:
@@ -95,11 +87,8 @@ def _darken(hex_color: str, factor: float = 0.8) -> RGBColor:
     Returns:
         Darkened ``RGBColor``.
     """
-    h = hex_color.lstrip("#")
-    r = int(int(h[0:2], 16) * factor)
-    g = int(int(h[2:4], 16) * factor)
-    b = int(int(h[4:6], 16) * factor)
-    return RGBColor(r, g, b)
+    r, g, b = hex_to_rgb(hex_color)
+    return RGBColor(int(r * factor), int(g * factor), int(b * factor))
 
 
 class DOCXWriter:
@@ -587,7 +576,7 @@ class DOCXWriter:
             status_cell = row.cells[0]
             status_para = status_cell.paragraphs[0]
             status_run = status_para.add_run(
-                f"{icon} {_STATUS_LABELS.get(step.status, step.status)}"
+                f"{icon} {STATUS_LABELS.get(step.status, step.status)}"
             )
             status_run.font.size = Pt(10)
             color = _STATUS_COLORS.get(step.status)
@@ -744,7 +733,7 @@ class DOCXWriter:
             self._shade_cell(cell, color)
         para = cell.paragraphs[0]
         para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = para.add_run(_STATUS_LABELS.get(status, status.upper()))
+        run = para.add_run(STATUS_LABELS.get(status, status.upper()))
         run.bold = True
         run.font.size = Pt(10)
         run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
