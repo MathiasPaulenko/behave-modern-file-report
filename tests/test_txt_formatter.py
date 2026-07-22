@@ -27,10 +27,18 @@ class MockStreamOpener:
     def __init__(self) -> None:
         self.stream = io.StringIO()
         self.opened = False
+        self.closed = False
+        self.should_close_stream = False
 
     def open(self) -> io.StringIO:
         self.opened = True
         return self.stream
+
+    def close(self) -> bool:
+        self.closed = True
+        if self.stream is not None and self.should_close_stream:
+            self.stream.close()
+        return True
 
 
 def _mock_config(userdata: dict[str, str] | None = None) -> SimpleNamespace:

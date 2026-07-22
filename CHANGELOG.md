@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duration formatting is now unified through `utils.format_duration` with configurable precision, eliminating duplicated implementations in HTML/PDF/TXT.
 - Status icons, labels, and colors are now centralized in `utils` and reused by DOCX, PDF, HTML, and TXT writers.
 - `TXTFormatter` now forces UTF-8 output encoding, preventing `UnicodeEncodeError` when writing Unicode status icons on Windows.
+- `TXTFormatter` now closes the Behave stream opener after writing, ensuring the output file is flushed and closed.
+- WeasyPrint rendering now also catches `OSError` caused by missing system libraries and reports a clear `ImportError`.
 
 ## [1.0.0] - 2026-07-22
 

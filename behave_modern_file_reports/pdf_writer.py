@@ -145,7 +145,7 @@ class PDFWriter:
         """
         try:
             from weasyprint import HTML
-        except ImportError as exc:
+        except (ImportError, OSError) as exc:
             raise ImportError(
                 "WeasyPrint is required for PDF generation. "
                 "Install it with: pip install weasyprint"
