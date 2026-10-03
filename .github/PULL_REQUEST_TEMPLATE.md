@@ -17,7 +17,7 @@
 - [ ] My code passes `mypy --strict`
 - [ ] I have added tests that prove my fix is effective or my feature works
 - [ ] New and existing unit tests pass locally (`make test`)
-- [ ] Test coverage remains at 100%
+- [ ] Test coverage does not drop below the configured threshold (90%)
 - [ ] I have updated the documentation if needed
 - [ ] I have updated `CHANGELOG.md` if applicable
 - [ ] My commits follow [Conventional Commits](https://www.conventionalcommits.org/)

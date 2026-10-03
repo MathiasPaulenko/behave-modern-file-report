@@ -4,9 +4,10 @@
 
 | Version | Supported |
 | ------- | --------- |
-| 0.1.x   | Yes       |
+| 1.x     | Yes       |
+| < 1.0   | No        |
 
-This project is in pre-alpha stage. Security fixes will be applied to the latest `main` branch and released as patch versions.
+This project is in beta stage. Security fixes will be applied to the latest `main` branch and released as patch versions.
 
 ## Reporting a Vulnerability
 

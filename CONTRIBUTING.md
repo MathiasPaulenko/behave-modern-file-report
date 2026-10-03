@@ -49,13 +49,13 @@ Follow the existing code style:
 ```bash
 make lint          # ruff check + format check
 make typecheck     # mypy --strict
-make test          # pytest with verbose output
+make test          # pytest
 ```
 
 Or run everything at once:
 
 ```bash
-ruff check . && ruff format --check . && mypy behave_modern_file_report tests && python -m pytest tests/ -v --cov=behave_modern_file_report --cov-fail-under=100
+ruff check . && ruff format --check . && mypy behave_modern_file_report tests && python -m pytest tests/ -v --cov=behave_modern_file_report --cov-fail-under=90
 ```
 
 ### 4. Commit your changes
@@ -83,7 +83,7 @@ Open a PR against `main` and fill in the pull request template.
 - **Python**: PEP 8, enforced by ruff
 - **Imports**: `isort`-compatible ordering (handled by ruff)
 - **Typing**: strict mypy with no `Any` in public APIs (use `Any` only for Behave objects in the collector)
-- **Testing**: 100% coverage required — every new line of code must be tested
+- **Testing**: coverage must stay at 90% or higher — every new line of code should be tested
 - **Docstrings**: Google style
 
 ### Example docstring
@@ -114,7 +114,7 @@ For coverage details:
 python -m pytest tests/ -v --cov=behave_modern_file_report --cov-report=term-missing
 ```
 
-Coverage must stay at 100%. If you add code, add tests.
+Coverage must stay at 90% or higher (enforced by `--cov-fail-under=90`). If you add code, add tests.
 
 ## Project Structure
 

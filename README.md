@@ -42,7 +42,7 @@ cover pages, executive summaries, environment metadata, attachments, and brandin
 - **Table of contents** (PDF/DOCX) with clickable links
 - **Error blocks** with traceback, exception type, and message
 - **Background steps** and **Rule** support
-- **Scenario outlines** with example tables
+- **Scenario outlines** (each example row reported as its own scenario)
 - **Regression tests** with golden files for TXT and HTML output
 
 ---
@@ -69,7 +69,21 @@ pip install "behave-modern-file-report[behave]"
    pip install "behave-modern-file-report[all]"
    ```
 
-2. Run Behave with a formatter and output file:
+2. Register the formatters in your `behave.ini` (or `behave.cfg`, `setup.cfg`,
+   `tox.ini`, `pyproject.toml` `[tool.behave.formatters]`):
+
+   ```ini
+   [behave.formatters]
+   behave-modern-pdf = behave_modern_file_report.pdf_formatter:PDFFormatter
+   behave-modern-docx = behave_modern_file_report.docx_formatter:DOCXFormatter
+   behave-modern-txt = behave_modern_file_report.txt_formatter:TXTFormatter
+   ```
+
+   > **Note:** Behave does not load setuptools entry points for custom
+   > formatters — you must either declare aliases like above or pass the
+   > scoped class name directly to `-f` (see [CLI usage](#cli-usage)).
+
+3. Run Behave with a formatter and output file:
 
    ```bash
    behave -f behave-modern-pdf -o report.pdf features/
@@ -77,11 +91,7 @@ pip install "behave-modern-file-report[behave]"
    behave -f behave-modern-txt -o report.txt features/
    ```
 
-   > **Note:** The formatters are registered as `behave-modern-pdf`, `behave-modern-docx`,
-   > and `behave-modern-txt` entry points. You can also define shorter aliases in your
-   > `behave.ini` if you prefer.
-
-3. Open the generated report file.
+4. Open the generated report file.
 
 ---
 
@@ -104,8 +114,26 @@ without WeasyPrint system dependencies.
 
 ## CLI usage
 
-The formatters are registered as Behave formatter entry points. Use them with
-`-f <formatter-name>` and `-o <output-file>`:
+Custom formatters are selected with `-f <formatter-name>`. Behave resolves
+formatter names in two ways — pick whichever suits your project:
+
+**Option A — aliases in `behave.ini` (recommended).** Declare the aliases once
+under `[behave.formatters]` and use short names:
+
+```ini
+[behave.formatters]
+behave-modern-pdf = behave_modern_file_report.pdf_formatter:PDFFormatter
+behave-modern-docx = behave_modern_file_report.docx_formatter:DOCXFormatter
+behave-modern-txt = behave_modern_file_report.txt_formatter:TXTFormatter
+```
+
+**Option B — scoped class names.** No config needed, pass `module:Class` to `-f`:
+
+```bash
+behave -f behave_modern_file_report.pdf_formatter:PDFFormatter -o report.pdf features/
+```
+
+Then run:
 
 ```bash
 # PDF report (default engine: WeasyPrint)
@@ -124,6 +152,10 @@ behave \
   -f behave-modern-txt -o report.txt \
   features/
 ```
+
+> **Note:** `-o` is required for PDF and DOCX. Without it, the formatter
+> writes `report.pdf` / `report.docx` to the current directory instead of
+> failing. The TXT formatter writes to stdout when `-o` is omitted.
 
 ### PDF engine selection
 
@@ -149,7 +181,7 @@ Format-specific options (`bmfr.<format>.<key>`) take precedence over global opti
 | `bmfr.project_name` | _(empty)_ | Project name shown on cover page |
 | `bmfr.logo` | _(empty)_ | Path to a logo image file (PNG, JPEG) |
 | `bmfr.primary_color` | `#2563EB` | Primary hex color for branding |
-| `bmfr.template` | _(empty)_ | Path to a custom Jinja2 template file or directory |
+| `bmfr.template` | _(empty)_ | Path to a custom Jinja2 template file, or a directory containing `default.html` (and optionally `default.css`) |
 | `bmfr.only_failed` | `false` | Only include failed scenarios in the report |
 | `bmfr.include_attachments` | `true` | Embed attachments in the report |
 | `bmfr.attachment_max_size_kb` | `512` | Maximum attachment size in KB |
@@ -177,12 +209,16 @@ behave \
 ## Attachments API
 
 The package provides a public API for attaching screenshots, files, text, and JSON
-to your test steps. Attachments are embedded inline in the reports.
+to your test steps. Attachments are embedded inline in the reports. Call these
+helpers from `environment.py` hooks (e.g. `after_step`) or from step
+implementations — when several formatters run at once, every report receives
+the attachment.
 
 ### Screenshot
 
 ```python
 from behave_modern_file_report import attach_screenshot
+
 
 @when("I take a screenshot")
 def step_impl(context):
