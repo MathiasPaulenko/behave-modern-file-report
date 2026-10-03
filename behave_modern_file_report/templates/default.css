@@ -345,6 +345,18 @@ tr:nth-child(even) {
   background: #FEF2F2;
 }
 
+.step-text {
+  margin: 6px 0 0 0;
+  padding: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: "Fira Code", Consolas, Monaco, monospace;
+  font-size: 8.5pt;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Summary table */
 .summary-table th:nth-child(1),
 .summary-table td:nth-child(1) { width: 28%; }

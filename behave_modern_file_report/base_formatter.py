@@ -36,8 +36,7 @@ def _filter_failed_scenarios(run_summary: RunSummary) -> None:
     filtered_features: list[FeatureSummary] = []
     for feature in run_summary.features:
         failed_scenarios = [
-            scenario for scenario in feature.scenarios
-            if scenario.status == STATUS_FAILED
+            scenario for scenario in feature.scenarios if scenario.status == STATUS_FAILED
         ]
         if not failed_scenarios:
             continue
@@ -187,6 +186,16 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
 
         self._collector.end_step(step)
 
+    def rule_finished(self) -> None:
+        """Handle the end of a Rule block (finalizes the current scenario).
+
+        Behave emits ``rule_finished`` instead of ``eof`` when a Rule
+        container ends; the enclosing feature remains open.
+        """
+        self._collector.end_background()
+        self._flush_orphan_buffers()
+        self._collector.end_scenario()
+
     def eof(self) -> None:
         """Handle end-of-file notification (finalizes current feature/scenario)."""
         self._collector.end_background()
@@ -199,6 +208,9 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         if self._closed:
             return
         self._closed = True
+        # Finalize anything still open (e.g. an aborted run) and flush
+        # attachments/logs buffered after the last step result.
+        self.eof()
         self._resolve_logo()
         run_summary = self._collector.finalize()
         run_summary.title = self._options.title

@@ -1,6 +1,7 @@
 """Behave formatter that produces a plain-text report.
 
-Registered as ``behave-modern-txt`` in Behave's formatter entry points.
+Select it as ``behave_modern_file_report.txt_formatter:TXTFormatter`` or
+declare a ``behave-modern-txt`` alias under ``[behave.formatters]``.
 """
 
 from __future__ import annotations

@@ -1,6 +1,7 @@
 """Behave formatter that produces a DOCX report.
 
-Registered as ``behave-modern-docx`` in Behave's formatter entry points.
+Select it as ``behave_modern_file_report.docx_formatter:DOCXFormatter`` or
+declare a ``behave-modern-docx`` alias under ``[behave.formatters]``.
 """
 
 from __future__ import annotations

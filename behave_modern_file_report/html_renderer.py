@@ -127,6 +127,10 @@ def render_html(
     env = _create_env(tdir)
 
     css_path = tdir / cname
+    if not css_path.exists() and tdir != _TEMPLATES_DIR:
+        # Custom templates without their own CSS fall back to the built-in
+        # stylesheet so the report stays readable.
+        css_path = _TEMPLATES_DIR / cname
     if css_path.exists():
         css_content = css_path.read_text(encoding="utf-8", errors="replace")
     else:

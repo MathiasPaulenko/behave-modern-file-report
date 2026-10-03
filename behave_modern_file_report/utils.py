@@ -254,7 +254,7 @@ def parse_bool(raw: str | bool | None) -> bool:
     """Parse a boolean value from a string.
 
     Args:
-        raw: One of ``"true"``, ``"1"``, ``"yes"``, ``"false"``, ``"0``,
+        raw: One of ``"true"``, ``"1"``, ``"yes"``, ``"false"``, ``"0"``,
             ``"no"`` (case-insensitive), or a bool.
 
     Returns:
@@ -329,7 +329,7 @@ def parse_pdf_engine(raw: str | None, default: str = "weasyprint") -> str:
     """Parse the PDF engine option.
 
     Args:
-        raw: ``"weasyprint"`` or ``"reportlab`` (case-insensitive).
+        raw: ``"weasyprint"`` or ``"reportlab"`` (case-insensitive).
         default: Value returned when ``raw`` is ``None`` or empty.
 
     Returns:
@@ -350,7 +350,7 @@ def parse_delimiter(raw: str | None, default: str = ",") -> str:
     """Parse a delimiter name into the actual delimiter character.
 
     Args:
-        raw: One of ``"comma"``, ``"semicolon"``, ``"tab`` (case-insensitive).
+        raw: One of ``"comma"``, ``"semicolon"``, ``"tab"`` (case-insensitive).
         default: Value returned when ``raw`` is ``None`` or empty.
 
     Returns:

@@ -82,7 +82,11 @@ def _step_paragraph(step: Step, style: Any) -> Any:
 
     keyword = _escape(step.keyword.rstrip())
     name = _escape(step.name)
-    return Paragraph(f"<b>{keyword}</b> {name}", style)
+    content = f"<b>{keyword}</b> {name}"
+    if step.text:
+        doc_text = "<br/>".join(_escape(line) for line in step.text.splitlines())
+        content += f'<br/><font size="8" color="#6B7280">{doc_text}</font>'
+    return Paragraph(content, style)
 
 
 # ---------------------------------------------------------------------------
@@ -147,8 +151,7 @@ class PDFWriter:
             from weasyprint import HTML
         except (ImportError, OSError) as exc:
             raise ImportError(
-                "WeasyPrint is required for PDF generation. "
-                "Install it with: pip install weasyprint"
+                "WeasyPrint is required for PDF generation. Install it with: pip install weasyprint"
             ) from exc
 
         output_path = str(path)  # pragma: no cover
@@ -197,8 +200,7 @@ class ReportLabWriter:
             )
         except ImportError as exc:
             raise ImportError(
-                "ReportLab is required for PDF generation. "
-                "Install it with: pip install reportlab"
+                "ReportLab is required for PDF generation. Install it with: pip install reportlab"
             ) from exc
 
         output_path = str(path)
@@ -308,93 +310,131 @@ class ReportLabWriter:
         story: list[Any] = []
 
         # -- Cover page --
-        story.append(Paragraph(
-            _escape(run_summary.title or "Behave Modern Report"),
-            style_title,
-        ))
+        story.append(
+            Paragraph(
+                _escape(run_summary.title or "Behave Modern Report"),
+                style_title,
+            )
+        )
         if run_summary.project_name:
             story.append(Paragraph(_escape(run_summary.project_name), style_subtitle))
 
         pct = run_summary.pass_rate * 100
         cover_rows = [
-            [Paragraph("Started:", style_cell_muted),
-             Paragraph(_escape(run_summary.start_time), style_cell)],
-            [Paragraph("Duration:", style_cell_muted),
-             Paragraph(_format_duration(run_summary.duration), style_cell)],
-            [Paragraph("Scenarios:", style_cell_muted),
-             Paragraph(str(run_summary.total_scenarios), style_cell)],
-            [Paragraph("Passed:", style_cell_muted),
-             Paragraph(str(run_summary.passed), style_cell)],
-            [Paragraph("Failed:", style_cell_muted),
-             Paragraph(str(run_summary.failed), style_cell)],
-            [Paragraph("Skipped:", style_cell_muted),
-             Paragraph(str(run_summary.skipped), style_cell)],
-            [Paragraph("Pass rate:", style_cell_muted),
-             Paragraph(f"{pct:.1f}%", style_cell)],
+            [
+                Paragraph("Started:", style_cell_muted),
+                Paragraph(_escape(run_summary.start_time), style_cell),
+            ],
+            [
+                Paragraph("Duration:", style_cell_muted),
+                Paragraph(_format_duration(run_summary.duration), style_cell),
+            ],
+            [
+                Paragraph("Scenarios:", style_cell_muted),
+                Paragraph(str(run_summary.total_scenarios), style_cell),
+            ],
+            [
+                Paragraph("Passed:", style_cell_muted),
+                Paragraph(str(run_summary.passed), style_cell),
+            ],
+            [
+                Paragraph("Failed:", style_cell_muted),
+                Paragraph(str(run_summary.failed), style_cell),
+            ],
+            [
+                Paragraph("Skipped:", style_cell_muted),
+                Paragraph(str(run_summary.skipped), style_cell),
+            ],
+            [Paragraph("Pass rate:", style_cell_muted), Paragraph(f"{pct:.1f}%", style_cell)],
         ]
         cover_table = Table(cover_rows, colWidths=[50 * mm, 120 * mm])
-        cover_table.setStyle(TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
-            ("BACKGROUND", (0, 0), (0, -1), _rl(_SURFACE)),
-            ("TEXTCOLOR", (0, 0), (0, -1), _rl(_TEXT_MUTED)),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        cover_table.setStyle(
+            TableStyle(
+                [
+                    ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
+                    ("BACKGROUND", (0, 0), (0, -1), _rl(_SURFACE)),
+                    ("TEXTCOLOR", (0, 0), (0, -1), _rl(_TEXT_MUTED)),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(cover_table)
         story.append(Spacer(1, 30))
 
         # -- Executive summary --
         story.append(Paragraph("Executive Summary", style_h1))
         totals_data = [
-            [Paragraph("Scenarios", style_cell_header), Paragraph("Passed", style_cell_header),
-             Paragraph("Failed", style_cell_header), Paragraph("Skipped", style_cell_header)],
-            [Paragraph(str(run_summary.total_scenarios), style_cell_center),
-             Paragraph(str(run_summary.passed), style_cell_center),
-             Paragraph(str(run_summary.failed), style_cell_center),
-             Paragraph(str(run_summary.skipped), style_cell_center)],
+            [
+                Paragraph("Scenarios", style_cell_header),
+                Paragraph("Passed", style_cell_header),
+                Paragraph("Failed", style_cell_header),
+                Paragraph("Skipped", style_cell_header),
+            ],
+            [
+                Paragraph(str(run_summary.total_scenarios), style_cell_center),
+                Paragraph(str(run_summary.passed), style_cell_center),
+                Paragraph(str(run_summary.failed), style_cell_center),
+                Paragraph(str(run_summary.skipped), style_cell_center),
+            ],
         ]
         totals_table = Table(totals_data, colWidths=[42.5 * mm] * 4)
-        totals_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), _rl(_SURFACE)),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ]))
+        totals_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), _rl(_SURFACE)),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
+                    ("TOPPADDING", (0, 0), (-1, -1), 8),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ]
+            )
+        )
         story.append(totals_table)
         story.append(Spacer(1, 16))
 
         # Feature summary table
         if run_summary.features:
             feat_headers = [
-                "Feature", "Scenarios", "Passed", "Failed",
-                "Skipped", "Pass rate", "Duration",
+                "Feature",
+                "Scenarios",
+                "Passed",
+                "Failed",
+                "Skipped",
+                "Pass rate",
+                "Duration",
             ]
             feat_rows = [[Paragraph(h, style_cell_header) for h in feat_headers]]
             for feat in run_summary.features:
-                feat_rows.append([
-                    Paragraph(_escape(feat.name), style_cell),
-                    Paragraph(str(feat.total_scenarios), style_cell_center),
-                    Paragraph(str(feat.passed), style_cell_center),
-                    Paragraph(str(feat.failed), style_cell_center),
-                    Paragraph(str(feat.skipped), style_cell_center),
-                    Paragraph(f"{feat.pass_rate * 100:.1f}%", style_cell_right),
-                    Paragraph(_format_duration(feat.duration), style_cell_right),
-                ])
+                feat_rows.append(
+                    [
+                        Paragraph(_escape(feat.name), style_cell),
+                        Paragraph(str(feat.total_scenarios), style_cell_center),
+                        Paragraph(str(feat.passed), style_cell_center),
+                        Paragraph(str(feat.failed), style_cell_center),
+                        Paragraph(str(feat.skipped), style_cell_center),
+                        Paragraph(f"{feat.pass_rate * 100:.1f}%", style_cell_right),
+                        Paragraph(_format_duration(feat.duration), style_cell_right),
+                    ]
+                )
             feat_table = Table(
                 feat_rows,
                 colWidths=[50 * mm, 22 * mm, 16 * mm, 16 * mm, 18 * mm, 20 * mm, 18 * mm],
             )
-            feat_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), _rl(_SURFACE)),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("ALIGN", (1, 1), (6, -1), "CENTER"),
-                ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ]))
+            feat_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), _rl(_SURFACE)),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("ALIGN", (1, 1), (6, -1), "CENTER"),
+                        ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ]
+                )
+            )
             story.append(feat_table)
         story.append(Spacer(1, 20))
 
@@ -440,14 +480,18 @@ class ReportLabWriter:
             ],
         ]
         env_table = Table(env_rows, colWidths=[50 * mm, 120 * mm])
-        env_table.setStyle(TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
-            ("BACKGROUND", (0, 0), (0, -1), _rl(_SURFACE)),
-            ("TEXTCOLOR", (0, 0), (0, -1), _rl(_TEXT_MUTED)),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        env_table.setStyle(
+            TableStyle(
+                [
+                    ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
+                    ("BACKGROUND", (0, 0), (0, -1), _rl(_SURFACE)),
+                    ("TEXTCOLOR", (0, 0), (0, -1), _rl(_TEXT_MUTED)),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(env_table)
         story.append(Spacer(1, 20))
 
@@ -461,8 +505,15 @@ class ReportLabWriter:
         }
         for feature in run_summary.features:
             self._write_feature(
-                feature, story, style_h1, style_h2, style_h3,
-                style_normal, style_muted, style_mono, cell_styles,
+                feature,
+                story,
+                style_h1,
+                style_h2,
+                style_h3,
+                style_normal,
+                style_muted,
+                style_mono,
+                cell_styles,
             )
 
         doc.build(story)
@@ -487,56 +538,77 @@ class ReportLabWriter:
         feature_status = feature.derive_status()
         status_label = STATUS_LABELS.get(feature_status, feature_status.upper())
         status_color = _STATUS_COLORS.get(feature_status, _TEXT_MUTED)
-        story.append(Paragraph(
-            f'<font color="#{status_color[0]:02X}{status_color[1]:02X}{status_color[2]:02X}">'
-            f"{_escape(status_label)}</font>",
-            style_muted,
-        ))
+        story.append(
+            Paragraph(
+                f'<font color="#{status_color[0]:02X}{status_color[1]:02X}{status_color[2]:02X}">'
+                f"{_escape(status_label)}</font>",
+                style_muted,
+            )
+        )
         if feature.location:
             story.append(Paragraph(_escape(feature.location), style_muted))
         if feature.description:
             story.append(Paragraph(_escape(feature.description), style_normal))
         if feature.tags:
-            story.append(Paragraph(
-                "Tags: " + " ".join(f"@{_escape(t)}" for t in feature.tags),
-                style_muted,
-            ))
+            story.append(
+                Paragraph(
+                    "Tags: " + " ".join(f"@{_escape(t)}" for t in feature.tags),
+                    style_muted,
+                )
+            )
 
         # Feature summary table
         headers = ["Total", "Passed", "Failed", "Skipped", "Undefined", "Pass rate"]
         summary_data = [[Paragraph(h, cell_styles["header"]) for h in headers]]
-        summary_data.append([
-            Paragraph(str(feature.total_scenarios), cell_styles["center"]),
-            Paragraph(str(feature.passed), cell_styles["center"]),
-            Paragraph(str(feature.failed), cell_styles["center"]),
-            Paragraph(str(feature.skipped), cell_styles["center"]),
-            Paragraph(str(feature.undefined), cell_styles["center"]),
-            Paragraph(f"{feature.pass_rate * 100:.1f}%", cell_styles["right"]),
-        ])
+        summary_data.append(
+            [
+                Paragraph(str(feature.total_scenarios), cell_styles["center"]),
+                Paragraph(str(feature.passed), cell_styles["center"]),
+                Paragraph(str(feature.failed), cell_styles["center"]),
+                Paragraph(str(feature.skipped), cell_styles["center"]),
+                Paragraph(str(feature.undefined), cell_styles["center"]),
+                Paragraph(f"{feature.pass_rate * 100:.1f}%", cell_styles["right"]),
+            ]
+        )
         summary_table = Table(summary_data, colWidths=[28 * mm] * 6)
-        summary_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), _rl(_SURFACE)),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        summary_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), _rl(_SURFACE)),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(summary_table)
         story.append(Spacer(1, 12))
 
         # Background
         if feature.background:
             self._write_background(
-                feature.background, story, style_h3,
-                style_normal, style_muted, style_mono, cell_styles,
+                feature.background,
+                story,
+                style_h3,
+                style_normal,
+                style_muted,
+                style_mono,
+                cell_styles,
             )
 
         # Scenarios
         for scenario in feature.scenarios:
             self._write_scenario(
-                scenario, story, style_h2, style_h3,
-                style_normal, style_muted, style_mono, cell_styles,
+                scenario,
+                story,
+                style_h2,
+                style_h3,
+                style_normal,
+                style_muted,
+                style_mono,
+                cell_styles,
             )
 
     def _write_scenario(  # pragma: no cover
@@ -560,11 +632,13 @@ class ReportLabWriter:
 
         status_label = STATUS_LABELS.get(scenario.status, scenario.status.upper())
         status_color = _STATUS_COLORS.get(scenario.status, _TEXT_MUTED)
-        story.append(Paragraph(
-            f'<font color="#{status_color[0]:02X}{status_color[1]:02X}{status_color[2]:02X}">'
-            f"{_escape(status_label)}</font>",
-            style_muted,
-        ))
+        story.append(
+            Paragraph(
+                f'<font color="#{status_color[0]:02X}{status_color[1]:02X}{status_color[2]:02X}">'
+                f"{_escape(status_label)}</font>",
+                style_muted,
+            )
+        )
 
         meta_parts: list[str] = []
         if scenario.location:
@@ -575,16 +649,23 @@ class ReportLabWriter:
         story.append(Paragraph("  |  ".join(meta_parts), style_muted))
 
         if scenario.tags:
-            story.append(Paragraph(
-                "Tags: " + " ".join(f"@{_escape(t)}" for t in scenario.tags),
-                style_muted,
-            ))
+            story.append(
+                Paragraph(
+                    "Tags: " + " ".join(f"@{_escape(t)}" for t in scenario.tags),
+                    style_muted,
+                )
+            )
 
         # Background
         if scenario.background:
             self._write_background(
-                scenario.background, story, style_h3,
-                style_normal, style_muted, style_mono, cell_styles,
+                scenario.background,
+                story,
+                style_h3,
+                style_normal,
+                style_muted,
+                style_mono,
+                cell_styles,
             )
 
         # Step table
@@ -595,20 +676,18 @@ class ReportLabWriter:
             self._write_error_block(scenario.error, story, style_h3, style_mono)
 
         # Attachments
-        attachments: list[Any] = []
-        for step in scenario.steps:
-            attachments.extend(step.attachments)
-        if attachments:
-            story.append(Paragraph("Attachments", style_h3))
-            for att in attachments:
-                story.append(Paragraph(f"- {_escape(att.name)}", style_muted))
-                if att.text:
-                    story.append(Paragraph(_escape(att.text), style_mono))
+        all_steps = scenario.steps
+        if scenario.background is not None:
+            all_steps = scenario.background.steps + all_steps
+        if self._options.include_attachments:
+            attachments: list[Any] = [att for step in all_steps for att in step.attachments]
+            if attachments:
+                story.append(Paragraph("Attachments", style_h3))
+                for att in attachments:
+                    self._write_attachment(att, story, style_muted, style_mono)
 
         # Logs
-        logs: list[str] = []
-        for step in scenario.steps:
-            logs.extend(step.logs)
+        logs: list[str] = [line for step in all_steps for line in step.logs]
         if logs:
             story.append(Paragraph("Logs", style_h3))
             for line in logs:
@@ -645,30 +724,85 @@ class ReportLabWriter:
         from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
 
         data = [
-            [Paragraph("Status", cell_styles["header"]),
-             Paragraph("Step", cell_styles["header"]),
-             Paragraph("Duration", cell_styles["header"])],
+            [
+                Paragraph("Status", cell_styles["header"]),
+                Paragraph("Step", cell_styles["header"]),
+                Paragraph("Duration", cell_styles["header"]),
+            ],
         ]
         for step in steps:
             icon = STATUS_ICONS.get(step.status, "?")
             label = STATUS_LABELS.get(step.status, step.status.upper())
-            data.append([
-                Paragraph(f"{_escape(icon)} {_escape(label)}", cell_styles["muted"]),
-                _step_paragraph(step, cell_styles["cell"]),
-                Paragraph(_format_duration(step.duration), cell_styles["right"]),
-            ])
+            data.append(
+                [
+                    Paragraph(f"{_escape(icon)} {_escape(label)}", cell_styles["muted"]),
+                    _step_paragraph(step, cell_styles["cell"]),
+                    Paragraph(_format_duration(step.duration), cell_styles["right"]),
+                ]
+            )
         table = Table(data, colWidths=[25 * mm, 115 * mm, 30 * mm])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), _rl(_SURFACE)),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("ALIGN", (0, 1), (0, -1), "CENTER"),
-            ("ALIGN", (2, 1), (2, -1), "RIGHT"),
-            ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), _rl(_SURFACE)),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ALIGN", (0, 1), (0, -1), "CENTER"),
+                    ("ALIGN", (2, 1), (2, -1), "RIGHT"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, _rl(_BORDER)),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(table)
         story.append(Spacer(1, 8))
+
+    def _write_attachment(  # pragma: no cover
+        self,
+        att: Any,
+        story: list[Any],
+        style_muted: Any,
+        style_mono: Any,
+    ) -> None:
+        """Write a single attachment to the story.
+
+        Images are embedded inline (scaled to fit the page width). Text
+        attachments are shown as monospace; everything else is listed by name.
+        """
+        import io as _io
+
+        from reportlab.lib.units import mm
+        from reportlab.lib.utils import ImageReader
+        from reportlab.platypus import Image, Paragraph
+
+        story.append(Paragraph(f"- {_escape(att.name)}", style_muted))
+        if att.is_image and att.data_base64:
+            try:
+                import base64
+
+                raw = base64.b64decode(att.data_base64)
+                img_stream = _io.BytesIO(raw)
+                reader = ImageReader(img_stream)
+                # Force the decode now: ImageReader reads lazily, and a broken
+                # stream would otherwise surface during doc.build().
+                reader.getRGBData()
+                img_w, img_h = reader.getSize()
+                if img_w and img_h:
+                    max_w = 170 * mm
+                    scale = min(1.0, max_w / img_w)
+                    img_stream.seek(0)
+                    story.append(
+                        Image(
+                            img_stream,
+                            width=img_w * scale,
+                            height=img_h * scale,
+                        )
+                    )
+            except Exception:
+                story.append(Paragraph("(image could not be displayed)", style_muted))
+        elif att.text:
+            text = "<br/>".join(_escape(line) for line in att.text.splitlines())
+            story.append(Paragraph(text, style_mono))
 
     def _write_error_block(  # pragma: no cover
         self,
@@ -692,16 +826,20 @@ class ReportLabWriter:
                 lines.append(_escape(tb_line))
         error_text = "<br/>".join(lines)
         error_table = Table([[Paragraph(error_text, style_mono)]], colWidths=[170 * mm])
-        error_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), _rl(_ERROR_BG)),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("LEFTPADDING", (0, 0), (-1, -1), 12),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("LINEBEFORE", (0, 0), (0, -1), 3, _rl(_STATUS_COLORS[STATUS_FAILED])),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ]))
+        error_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), _rl(_ERROR_BG)),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                    ("TOPPADDING", (0, 0), (-1, -1), 8),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                    ("LINEBEFORE", (0, 0), (0, -1), 3, _rl(_STATUS_COLORS[STATUS_FAILED])),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
         story.append(error_table)
         story.append(Spacer(1, 8))
 

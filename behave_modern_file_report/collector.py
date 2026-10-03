@@ -54,12 +54,15 @@ class Collector:
         self._features: list[FeatureSummary] = []
         self._current_feature: FeatureSummary | None = None
         self._current_scenario: ScenarioResult | None = None
+        self._current_behave_feature: Any = None
+        self._current_behave_scenario: Any = None
         self._step_queue: deque[Step] = deque()
-        self._current_background: Background | None = None
         self._scenario_start: float = 0.0
         self._feature_start: float = 0.0
         self._max_traceback_lines: int = max_traceback_lines
-        self._in_background: bool = False
+        self._bg_name_pending: str = ""
+        self._bg_step_count: int = 0
+        self._bg_name: str = ""
 
     def peek_current_step(self) -> Step | None:
         """Return the next queued step without removing it.
@@ -88,25 +91,27 @@ class Collector:
             tags=tags,
             location=location,
         )
+        self._current_behave_feature = behave_feature
         self._feature_start = time.perf_counter()
 
     def start_background(self, behave_background: Any) -> None:
-        """Begin tracking a feature's background section.
+        """Record the name of a feature's or rule's background section.
+
+        Behave emits ``background()`` once per container without any steps;
+        the background steps that actually run are announced later, as the
+        leading steps of each scenario (``Scenario.background_steps``). This
+        method only keeps the declared name as a fallback.
 
         Args:
             behave_background: A Behave ``Background`` object (or mock) with
                 ``name`` and optionally ``location``.
         """
         name = safe_str(getattr(behave_background, "name", "")) or "Background"
-        self._current_background = Background(name=name)
-        self._in_background = True
+        self._bg_name_pending = name
 
     def end_background(self) -> None:
-        """Finalize the current background and attach it to the feature."""
-        if self._current_background is not None and self._current_feature is not None:
-            self._current_feature.background = self._current_background
-        self._current_background = None
-        self._in_background = False
+        """Clear the pending background name (steps attach per-scenario)."""
+        self._bg_name_pending = ""
 
     def start_scenario(self, behave_scenario: Any) -> None:
         """Begin tracking a scenario.
@@ -122,15 +127,35 @@ class Collector:
         if feature is not None:
             feature_name = getattr(feature, "name", "") or ""
 
-        is_outline = bool(getattr(behave_scenario, "is_outline", False))
+        parent = getattr(behave_scenario, "parent", None)
+        parent_type = getattr(parent, "type", "")
+        is_outline = (
+            bool(getattr(behave_scenario, "is_outline", False)) or parent_type == "scenario_outline"
+        )
         outline_name = ""
         if is_outline:
-            outline_name = getattr(behave_scenario, "name", "") or ""
+            outline_name = getattr(parent, "name", "") or getattr(behave_scenario, "name", "") or ""
 
         rule_name = ""
         rule = getattr(behave_scenario, "rule", None)
         if rule is not None:
             rule_name = getattr(rule, "name", "") or ""
+        if not rule_name:
+            node = parent
+            while node is not None:
+                if getattr(node, "type", "") == "rule":
+                    rule_name = getattr(node, "name", "") or ""
+                    break
+                node = getattr(node, "parent", None)
+
+        bg_steps = getattr(behave_scenario, "background_steps", None) or []
+        self._bg_step_count = len(bg_steps)
+        self._bg_name = ""
+        if self._bg_step_count:
+            bg_obj = getattr(behave_scenario, "background", None)
+            self._bg_name = (
+                safe_str(getattr(bg_obj, "name", "")) or self._bg_name_pending or "Background"
+            )
 
         self._current_scenario = ScenarioResult(
             name=getattr(behave_scenario, "name", "") or "",
@@ -142,8 +167,7 @@ class Collector:
             outline_name=outline_name,
             description=safe_description(behave_scenario),
         )
-        if self._current_feature is not None and self._current_feature.background is not None:
-            self._current_scenario.background = self._current_feature.background
+        self._current_behave_scenario = behave_scenario
         self._scenario_start = time.perf_counter()
 
     def start_step(self, behave_step: Any) -> None:
@@ -182,13 +206,7 @@ class Collector:
         """
         if not self._step_queue:
             return
-        if not self._in_background and self._current_scenario is None:
-            return
-        if (
-            self._in_background
-            and self._current_background is None
-            and self._current_scenario is None
-        ):
+        if self._current_scenario is None:
             return
 
         current_step = self._step_queue.popleft()
@@ -207,29 +225,54 @@ class Collector:
         if current_step.status == STATUS_FAILED:
             current_step.error = _extract_error(behave_step, self._max_traceback_lines)
 
-        if self._in_background and self._current_background is not None:
-            self._current_background.steps.append(current_step)
-        elif self._current_scenario is not None:  # pragma: no cover: guarded above
+        if self._bg_step_count > 0:
+            self._bg_step_count -= 1
+            if self._current_scenario.background is None:
+                self._current_scenario.background = Background(name=self._bg_name)
+            self._current_scenario.background.steps.append(current_step)
+        else:
             self._current_scenario.steps.append(current_step)
 
     def end_scenario(self) -> None:
         """Finalize the current scenario and append it to the current feature."""
         if self._current_scenario is None or self._current_feature is None:
             self._step_queue.clear()
+            self._bg_step_count = 0
             return
 
         # Finalize any remaining queued steps as skipped
         while self._step_queue:
             step = self._step_queue.popleft()
             step.status = STATUS_SKIPPED
-            self._current_scenario.steps.append(step)
+            if self._bg_step_count > 0:
+                self._bg_step_count -= 1
+                if self._current_scenario.background is None:
+                    self._current_scenario.background = Background(name=self._bg_name)
+                self._current_scenario.background.steps.append(step)
+            else:
+                self._current_scenario.steps.append(step)
 
         self._current_scenario.duration = time.perf_counter() - self._scenario_start
         self._current_scenario.status = _derive_scenario_status(self._current_scenario)
+        # A failed before/after_scenario hook marks the scenario failed even
+        # when all its steps were skipped.
+        if getattr(self._current_behave_scenario, "hook_failed", False):
+            self._current_scenario.status = STATUS_FAILED
         if self._current_scenario.status == STATUS_FAILED:
             self._current_scenario.error = _first_failed_error(self._current_scenario)
+            if self._current_scenario.error is None:
+                self._current_scenario.error = _extract_error(
+                    self._current_behave_scenario, self._max_traceback_lines
+                )
+        if (
+            self._current_feature.background is None
+            and self._current_scenario.background is not None
+        ):
+            self._current_feature.background = self._current_scenario.background
         self._current_feature.scenarios.append(self._current_scenario)
         self._current_scenario = None
+        self._current_behave_scenario = None
+        self._bg_step_count = 0
 
     def end_feature(self) -> None:
         """Finalize the current feature and append it to the run."""
@@ -238,8 +281,11 @@ class Collector:
 
         self._current_feature.duration = time.perf_counter() - self._feature_start
         self._current_feature.status = self._current_feature.derive_status()
+        if getattr(self._current_behave_feature, "hook_failed", False):
+            self._current_feature.status = STATUS_FAILED
         self._features.append(self._current_feature)
         self._current_feature = None
+        self._current_behave_feature = None
 
     def finalize(self) -> RunSummary:
         """Finalize the run and return the complete ``RunSummary``.
@@ -286,12 +332,16 @@ def _extract_error(behave_step: Any, max_traceback_lines: int) -> ErrorInfo | No
     exception_type = type(exception).__name__
 
     traceback_str = ""
-    error_message = getattr(behave_step, "error_message", None)
-    if error_message is not None:
-        traceback_str = str(error_message).strip()
-    elif isinstance(exception, BaseException):
-        tb_lines = _format_traceback(exception)
-        traceback_str = "\n".join(tb_lines)
+    exc_traceback = getattr(behave_step, "exc_traceback", None)
+    if exc_traceback is None and isinstance(exception, BaseException):
+        exc_traceback = exception.__traceback__
+    if exc_traceback is not None and isinstance(exception, BaseException):
+        tb_lines = _format_traceback(exception, exc_traceback)
+        traceback_str = "".join(tb_lines).strip()
+    else:
+        error_message = getattr(behave_step, "error_message", None)
+        if error_message is not None:
+            traceback_str = str(error_message).strip()
 
     if max_traceback_lines > 0:
         lines = traceback_str.splitlines()
@@ -309,18 +359,21 @@ def _extract_error(behave_step: Any, max_traceback_lines: int) -> ErrorInfo | No
     )
 
 
-def _format_traceback(exception: BaseException) -> list[str]:
+def _format_traceback(exception: BaseException, tb: Any = None) -> list[str]:
     """Format an exception's traceback as a list of lines.
 
     Args:
         exception: The exception to format.
+        tb: Optional traceback object (defaults to ``exception.__traceback__``).
 
     Returns:
         A list of traceback lines.
     """
     import traceback as tb_module
 
-    return tb_module.format_exception(type(exception), exception, exception.__traceback__)
+    return tb_module.format_exception(
+        type(exception), exception, tb if tb is not None else exception.__traceback__
+    )
 
 
 def _first_failed_error(scenario: ScenarioResult) -> ErrorInfo | None:

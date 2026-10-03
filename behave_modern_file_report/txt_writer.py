@@ -59,11 +59,10 @@ class TXTWriter:
         Args:
             options: The resolved report options.
         """
+        self._options = options
         self._width: int = max(40, options.txt_width)
         self._ascii: bool = options.txt_ascii
-        self._icons: dict[str, str] = (
-            _STATUS_ICONS_ASCII if self._ascii else _STATUS_ICONS_UNICODE
-        )
+        self._icons: dict[str, str] = _STATUS_ICONS_ASCII if self._ascii else _STATUS_ICONS_UNICODE
 
     def write(self, run_summary: RunSummary, stream: TextIO) -> None:
         """Write the full report to the given stream.
@@ -207,9 +206,7 @@ class TXTWriter:
         if scenario.tags:
             stream.write(f"      Tags: {', '.join(scenario.tags)}")
             stream.write("\n")
-        stream.write(
-            f"      Duration: {format_duration(scenario.duration)}"
-        )
+        stream.write(f"      Duration: {format_duration(scenario.duration)}")
         stream.write("\n\n")
 
         if scenario.background is not None:
@@ -218,7 +215,11 @@ class TXTWriter:
         for step in scenario.steps:
             self._write_step(step, stream, indent="      ")
 
-        if scenario.error is not None:
+        # The scenario error is normally the same ErrorInfo already shown
+        # under the failing step — only print it when it is not.
+        if scenario.error is not None and all(
+            scenario.error != step.error for step in scenario.steps
+        ):
             self._write_error(scenario.error, stream)
 
         stream.write("\n")
@@ -243,10 +244,15 @@ class TXTWriter:
             stream.write(wl)
             stream.write("\n")
 
+        if step.text:
+            for text_line in step.text.splitlines():
+                stream.write(f"{indent}   {text_line}")
+                stream.write("\n")
+
         if step.error is not None:
             self._write_error(step.error, stream, indent=indent + "   ")
 
-        if step.attachments:
+        if step.attachments and self._options.include_attachments:
             stream.write(f"{indent}Attachments:\n")
             for att in step.attachments:
                 size_info = ""

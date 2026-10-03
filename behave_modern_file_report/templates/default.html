@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>{{ run.title }}</title>
-  <style>{{ css }}</style>
+  <style>{{ css | safe }}</style>
 </head>
 <body>
 
@@ -42,9 +42,10 @@
       {% for feature in run.features %}
       <li>
         <a href="#feature-{{ loop.index }}">{{ feature.name }}</a>
+        {% set fidx = loop.index %}
         <ul>
           {% for scenario in feature.scenarios %}
-          <li><a href="#scenario-{{ loop.index0 }}-{{ loop.index }}">{{ scenario.name }}</a></li>
+          <li><a href="#scenario-{{ fidx }}-{{ loop.index }}">{{ scenario.name }}</a></li>
           {% endfor %}
         </ul>
       </li>
@@ -184,7 +185,8 @@
           {% for step in feature.background.steps %}
           <tr class="step-{{ step.status }}">
             <td><span class="status-icon status-{{ step.status }}">{{ step.status | status_icon }}</span></td>
-            <td><strong>{{ step.keyword.rstrip() }}</strong> {{ step.name }}</td>
+            <td><strong>{{ step.keyword.rstrip() }}</strong> {{ step.name }}
+              {% if step.text %}<pre class="step-text">{{ step.text }}</pre>{% endif %}</td>
             <td>{{ step.duration | format_duration }}</td>
           </tr>
           {% endfor %}
@@ -193,8 +195,9 @@
     </section>
     {% endif %}
 
+    {% set fidx = loop.index %}
     {% for scenario in feature.scenarios %}
-    <section class="scenario" id="scenario-{{ loop.index0 }}-{{ loop.index }}">
+    <section class="scenario" id="scenario-{{ fidx }}-{{ loop.index }}">
       <header class="scenario-header">
         <h2>{{ scenario.name }}{% if scenario.is_outline %} [OUTLINE]{% endif %}</h2>
         <span class="badge badge-{{ scenario.status }}">{{ scenario.status }}</span>
@@ -227,7 +230,8 @@
             {% for step in scenario.background.steps %}
             <tr class="step-{{ step.status }}">
               <td><span class="status-icon status-{{ step.status }}">{{ step.status | status_icon }}</span></td>
-              <td><strong>{{ step.keyword.rstrip() }}</strong> {{ step.name }}</td>
+              <td><strong>{{ step.keyword.rstrip() }}</strong> {{ step.name }}
+                {% if step.text %}<pre class="step-text">{{ step.text }}</pre>{% endif %}</td>
               <td>{{ step.duration | format_duration }}</td>
             </tr>
             {% endfor %}
@@ -248,7 +252,8 @@
           {% for step in scenario.steps %}
           <tr class="step-{{ step.status }}">
             <td><span class="status-icon status-{{ step.status }}">{{ step.status | status_icon }}</span></td>
-            <td><strong>{{ step.keyword.rstrip() }}</strong> {{ step.name }}</td>
+            <td><strong>{{ step.keyword.rstrip() }}</strong> {{ step.name }}
+              {% if step.text %}<pre class="step-text">{{ step.text }}</pre>{% endif %}</td>
             <td>{{ step.duration | format_duration }}</td>
           </tr>
           {% endfor %}
@@ -275,7 +280,7 @@
           {% if scenario_attachments.append(attachment) %}{% endif %}
         {% endfor %}
       {% endfor %}
-      {% if scenario_attachments %}
+      {% if scenario_attachments and options.include_attachments %}
       <div class="attachments">
         <h4>Attachments</h4>
         <ul>

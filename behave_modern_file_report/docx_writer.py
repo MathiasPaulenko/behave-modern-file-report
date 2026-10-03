@@ -107,14 +107,10 @@ class DOCXWriter:
         """
         self._options = options
         self._primary = (
-            _hex_to_rgb(options.primary_color)
-            if options.primary_color
-            else _DEFAULT_PRIMARY
+            _hex_to_rgb(options.primary_color) if options.primary_color else _DEFAULT_PRIMARY
         )
         self._primary_dark = (
-            _darken(options.primary_color)
-            if options.primary_color
-            else _DEFAULT_PRIMARY_DARK
+            _darken(options.primary_color) if options.primary_color else _DEFAULT_PRIMARY_DARK
         )
         self._bookmark_id = 1
 
@@ -158,9 +154,7 @@ class DOCXWriter:
 
         # Ensure the Hyperlink character style exists for TOC entries
         if "Hyperlink" not in doc.styles:
-            hyperlink_style = doc.styles.add_style(
-                "Hyperlink", WD_STYLE_TYPE.CHARACTER
-            )
+            hyperlink_style = doc.styles.add_style("Hyperlink", WD_STYLE_TYPE.CHARACTER)
             hyperlink_style.font.color.rgb = RGBColor(0x05, 0x63, 0xC1)
             hyperlink_style.font.underline = True
 
@@ -266,17 +260,13 @@ class DOCXWriter:
         for f_idx, feature in enumerate(run.features):
             toc_entries.append((feature.name, f"feature-{f_idx}", 0))
             for s_idx, scenario in enumerate(feature.scenarios):
-                toc_entries.append(
-                    (scenario.name, f"scenario-{f_idx}-{s_idx}", 1)
-                )
+                toc_entries.append((scenario.name, f"scenario-{f_idx}-{s_idx}", 1))
 
         for text, bookmark_name, level in toc_entries:
             para = doc.add_paragraph()
             para.paragraph_format.left_indent = Cm(0.6 * level)
             para.paragraph_format.space_after = Pt(2)
-            self._add_toc_link(
-                para, text, bookmark_name, 11 if level == 0 else 10
-            )
+            self._add_toc_link(para, text, bookmark_name, 11 if level == 0 else 10)
 
         doc.add_page_break()  # type: ignore[no-untyped-call]
 
@@ -326,8 +316,13 @@ class DOCXWriter:
         # Per-feature table
         if run.features:
             headers = [
-                "Feature", "Scenarios", "Passed", "Failed",
-                "Skipped", "Pass rate", "Duration",
+                "Feature",
+                "Scenarios",
+                "Passed",
+                "Failed",
+                "Skipped",
+                "Pass rate",
+                "Duration",
             ]
             feat_table = doc.add_table(rows=1 + len(run.features), cols=len(headers))
             feat_table.style = "Table Grid"
@@ -425,9 +420,7 @@ class DOCXWriter:
         # Tags
         if feature.tags:
             tags_para = doc.add_paragraph()
-            tags_run = tags_para.add_run(
-                f"Tags: {', '.join(f'@{t}' for t in feature.tags)}"
-            )
+            tags_run = tags_para.add_run(f"Tags: {', '.join(f'@{t}' for t in feature.tags)}")
             tags_run.font.size = Pt(9)
             tags_run.font.color.rgb = _TEXT_MUTED
 
@@ -446,9 +439,7 @@ class DOCXWriter:
         for s_idx, scenario in enumerate(feature.scenarios):
             self._write_scenario(doc, scenario, feature_index, s_idx)
 
-    def _add_feature_summary_table(
-        self, doc: DocxDocument, feature: FeatureSummary
-    ) -> None:
+    def _add_feature_summary_table(self, doc: DocxDocument, feature: FeatureSummary) -> None:
         """Add a mini summary table for a feature."""
         headers = ["Total", "Passed", "Failed", "Skipped", "Undefined", "Pass rate"]
         values = [
@@ -496,9 +487,7 @@ class DOCXWriter:
         if scenario.is_outline:
             heading_text = f"{heading_text} [OUTLINE]"
         heading = doc.add_heading(heading_text, level=2)
-        self._add_bookmark(
-            heading, f"scenario-{feature_index}-{scenario_index}"
-        )
+        self._add_bookmark(heading, f"scenario-{feature_index}-{scenario_index}")
 
         # Status badge
         self._add_status_badge(doc, scenario.status)
@@ -518,9 +507,7 @@ class DOCXWriter:
 
         if scenario.tags:
             tags_para = doc.add_paragraph()
-            tags_run = tags_para.add_run(
-                f"Tags: {', '.join(f'@{t}' for t in scenario.tags)}"
-            )
+            tags_run = tags_para.add_run(f"Tags: {', '.join(f'@{t}' for t in scenario.tags)}")
             tags_run.font.size = Pt(9)
             tags_run.font.color.rgb = _TEXT_MUTED
 
@@ -590,19 +577,34 @@ class DOCXWriter:
             keyword_run.font.size = Pt(10)
             step_para.add_run(step.name).font.size = Pt(10)
 
-            dur_cell = row.cells[2]
-            dur_para = dur_cell.paragraphs[0]
-            dur_run = dur_para.add_run(format_duration(step.duration))
-            dur_run.font.size = Pt(10)
-            dur_run.font.color.rgb = _TEXT_MUTED
+            # Docstring (multiline argument), inside the step cell
+            if step.text:
+                text_para = step_cell.add_paragraph()
+                text_run = text_para.add_run(step.text)
+                text_run.font.size = Pt(8)
+                text_run.font.name = "Consolas"
+                text_run.font.color.rgb = _TEXT_MUTED
 
             # Step error (avoid duplicating the scenario-level error)
             if step.error is not None and step.error != scenario_error:
-                self._write_error_block(doc, step.error)
+                message = getattr(step.error, "message", str(step.error))
+                exc_type = getattr(step.error, "exception_type", "")
+                tb_str = getattr(step.error, "traceback", "")
+                err_para = step_cell.add_paragraph()
+                err_header = f"ERROR ({exc_type}): {message}" if exc_type else f"ERROR: {message}"
+                err_run = err_para.add_run(err_header)
+                err_run.font.size = Pt(9)
+                err_run.font.color.rgb = RGBColor(0xEF, 0x44, 0x44)
+                if tb_str:
+                    tb_para = step_cell.add_paragraph()
+                    tb_run = tb_para.add_run(tb_str)
+                    tb_run.font.size = Pt(8)
+                    tb_run.font.name = "Consolas"
+                    tb_run.font.color.rgb = _TEXT_MUTED
 
             # Step attachments
-            if step.attachments:
-                att_para = doc.add_paragraph()
+            if step.attachments and self._options.include_attachments:
+                att_para = step_cell.add_paragraph()
                 att_run = att_para.add_run(
                     f"Attachments: {', '.join(a.name for a in step.attachments)}"
                 )
@@ -612,10 +614,16 @@ class DOCXWriter:
             # Step logs
             if step.logs:
                 for log_line in step.logs:
-                    log_para = doc.add_paragraph()
+                    log_para = step_cell.add_paragraph()
                     log_run = log_para.add_run(f"> {log_line}")
                     log_run.font.size = Pt(9)
                     log_run.font.color.rgb = _TEXT_MUTED
+
+            dur_cell = row.cells[2]
+            dur_para = dur_cell.paragraphs[0]
+            dur_run = dur_para.add_run(format_duration(step.duration))
+            dur_run.font.size = Pt(10)
+            dur_run.font.color.rgb = _TEXT_MUTED
 
     # ------------------------------------------------------------------
     # Error block
@@ -668,10 +676,13 @@ class DOCXWriter:
         Text/JSON attachments are shown in monospace font with a light background.
         Binary files are listed by name only.
         """
-        all_attachments: list[Any] = []
-        for step in scenario.steps:
-            for att in step.attachments:
-                all_attachments.append(att)
+        if not self._options.include_attachments:
+            return
+
+        steps = scenario.steps
+        if scenario.background is not None:
+            steps = scenario.background.steps + steps
+        all_attachments: list[Any] = [att for step in steps for att in step.attachments]
         if not all_attachments:
             return
 
@@ -682,7 +693,7 @@ class DOCXWriter:
         heading_run.font.color.rgb = self._primary_dark
 
         for att in all_attachments:
-            if att.is_image and self._options.include_attachments and att.data_base64:
+            if att.is_image and att.data_base64:
                 self._insert_image_inline(doc, att)
             elif att.text is not None:
                 self._insert_text_attachment(doc, att)
@@ -748,10 +759,7 @@ class DOCXWriter:
         bid = self._bookmark_id
         self._bookmark_id += 1
         safe_name = _html_escape(name, quote=True)
-        start = parse_xml(
-            f'<w:bookmarkStart w:id="{bid}" w:name="{safe_name}" '
-            f'xmlns:w="{w_ns}" />'
-        )
+        start = parse_xml(f'<w:bookmarkStart w:id="{bid}" w:name="{safe_name}" xmlns:w="{w_ns}" />')
         end = parse_xml(f'<w:bookmarkEnd w:id="{bid}" xmlns:w="{w_ns}" />')
         p = paragraph._p
         pPr = p.find(qn("w:pPr"))
@@ -779,7 +787,7 @@ class DOCXWriter:
             f'<w:rStyle w:val="Hyperlink"/>'
             f'<w:sz w:val="{half_pts}"/>'
             f'<w:szCs w:val="{half_pts}"/>'
-            f'</w:rPr><w:t>{escaped}</w:t></w:r></w:hyperlink>'
+            f"</w:rPr><w:t>{escaped}</w:t></w:r></w:hyperlink>"
         )
         paragraph._p.append(hyperlink)
 
@@ -807,10 +815,7 @@ class DOCXWriter:
         if bg_hex is None:
             return  # pragma: no cover
         w_ns = nsmap["w"]
-        shading = parse_xml(
-            f'<w:shd w:fill="{bg_hex}" w:val="clear" '
-            f'xmlns:w="{w_ns}" />'
-        )
+        shading = parse_xml(f'<w:shd w:fill="{bg_hex}" w:val="clear" xmlns:w="{w_ns}" />')
         cell._tc.append(shading)  # type: ignore[attr-defined]
 
 

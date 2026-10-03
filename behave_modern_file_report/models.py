@@ -310,7 +310,7 @@ class Environment:
         git_commit = ""
         try:
             proc = subprocess.run(
-                ["git", "log", "-1", '--format=%H|%D'],
+                ["git", "log", "-1", "--format=%H|%D"],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -519,6 +519,14 @@ class ReportOptions:
         except ValueError:
             pdf_engine = "weasyprint"
 
+        def safe_int(key: str, default: int) -> int:
+            try:
+                return parse_int(resolve(key), default)
+            except ValueError:
+                return default
+
+        raw_include_attachments = resolve("include_attachments")
+
         return cls(
             only_failed=parse_bool(resolve("only_failed")),
             template=resolve("template") or "",
@@ -526,10 +534,12 @@ class ReportOptions:
             primary_color=primary_color,
             title=resolve("title") or "Behave Modern Report",
             project_name=resolve("project_name") or "",
-            include_attachments=parse_bool(resolve("include_attachments")),
-            max_traceback_lines=parse_int(resolve("max_traceback_lines"), 50),
-            attachment_max_size_kb=parse_int(resolve("attachment_max_size_kb"), 512),
-            txt_width=parse_int(resolve("txt_width"), 100),
+            include_attachments=(
+                parse_bool(raw_include_attachments) if raw_include_attachments is not None else True
+            ),
+            max_traceback_lines=safe_int("max_traceback_lines", 50),
+            attachment_max_size_kb=safe_int("attachment_max_size_kb", 512),
+            txt_width=safe_int("txt_width", 100),
             txt_ascii=parse_bool(resolve("txt_ascii")),
             pdf_engine=pdf_engine,
         )

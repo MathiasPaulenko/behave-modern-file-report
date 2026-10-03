@@ -1,6 +1,7 @@
 """Behave formatter that produces a PDF report.
 
-Registered as ``behave-modern-pdf`` in Behave's formatter entry points.
+Select it as ``behave_modern_file_report.pdf_formatter:PDFFormatter`` or
+declare a ``behave-modern-pdf`` alias under ``[behave.formatters]``.
 """
 
 from __future__ import annotations
@@ -24,7 +25,9 @@ class PDFFormatter(BaseFileFormatter):
     _default_filename = "report.pdf"
 
     def _write_report(  # pragma: no cover
-        self, run_summary: RunSummary, options: ReportOptions,
+        self,
+        run_summary: RunSummary,
+        options: ReportOptions,
     ) -> None:
         """Write the PDF report to the output path.
 

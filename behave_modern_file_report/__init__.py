@@ -8,7 +8,7 @@ from behave_modern_file_report.attachments import (
     log,
 )
 
-__version__ = "1.1.2"
+__version__ = "1.4.0"
 
 __all__ = [
     "__version__",

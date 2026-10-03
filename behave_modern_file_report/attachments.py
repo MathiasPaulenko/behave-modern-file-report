@@ -30,34 +30,43 @@ from typing import Any
 from behave_modern_file_report.models import Attachment
 
 
-def _find_formatter(context: Any) -> Any:
-    """Find the active ``BaseFileFormatter`` from a Behave ``context``.
+def _find_formatters(context: Any) -> list[Any]:
+    """Find all active ``BaseFileFormatter`` instances from a Behave ``context``.
 
     Behave stores active formatters in ``context._runner.formatters``
-    (a dict of name → formatter).  This helper scans the dict and
-    returns the first ``BaseFileFormatter`` instance found.
+    (a dict of name → formatter or a list).  Every matching file formatter
+    is returned so attachments and logs reach all configured report outputs.
 
     Args:
         context: A Behave ``Context`` object.
 
     Returns:
-        The first ``BaseFileFormatter`` found, or ``None``.
+        A list of ``BaseFileFormatter`` instances (possibly empty).
     """
     runner = getattr(context, "_runner", None)
     if runner is None:
-        return None
+        return []
     formatters = getattr(runner, "formatters", None)
     if formatters is None:
-        return None
-    if isinstance(formatters, dict):
-        for fmt in formatters.values():
-            if _is_file_formatter(fmt):
-                return fmt
-    elif isinstance(formatters, list):
-        for fmt in formatters:
-            if _is_file_formatter(fmt):
-                return fmt
-    return None
+        return []
+    candidates = (
+        formatters.values()
+        if isinstance(formatters, dict)
+        else formatters
+        if isinstance(formatters, list)
+        else []
+    )
+    return [fmt for fmt in candidates if _is_file_formatter(fmt)]
+
+
+def _find_formatter(context: Any) -> Any:
+    """Return the first active ``BaseFileFormatter`` found, or ``None``.
+
+    Kept for backwards compatibility; new code should use
+    :func:`_find_formatters` so all report formatters receive attachments.
+    """
+    formatters = _find_formatters(context)
+    return formatters[0] if formatters else None
 
 
 def _is_file_formatter(obj: Any) -> bool:
@@ -280,8 +289,8 @@ def attach_screenshot(
             If ``None``, attempts to use ``context.driver`` or ``context.page``.
         name: Attachment name (defaults to ``"screenshot.png"``).
     """
-    fmt = _find_formatter(context)
-    if fmt is None:
+    fmts = _find_formatters(context)
+    if not fmts:
         return
 
     if source is None:
@@ -289,14 +298,15 @@ def attach_screenshot(
     if source is None:
         return
 
-    max_kb = _get_max_size_kb(fmt)
+    max_kb = max(_get_max_size_kb(f) for f in fmts)
     data = _capture_screenshot(source, max_kb)
-    data = _check_size(data, max_kb)
     if not data:
         return
 
-    att = _make_attachment_from_bytes(data, name, "image/png")
-    fmt.attach(att)
+    for fmt in fmts:
+        sized = _check_size(data, _get_max_size_kb(fmt))
+        if sized:
+            fmt.attach(_make_attachment_from_bytes(sized, name, "image/png"))
 
 
 def attach_file(
@@ -311,20 +321,21 @@ def attach_file(
         path: Path to the file to attach.
         name: Optional attachment name override.
     """
-    fmt = _find_formatter(context)
-    if fmt is None:
+    fmts = _find_formatters(context)
+    if not fmts:
         return
 
     p = Path(path)
     file_name = name or p.name
-    max_kb = _get_max_size_kb(fmt)
+    max_kb = max(_get_max_size_kb(f) for f in fmts)
     data = _read_file_bytes(p, max_kb)
-    data = _check_size(data, max_kb)
     if not data:
         return
 
-    att = _make_attachment_from_bytes(data, file_name)
-    fmt.attach(att)
+    for fmt in fmts:
+        sized = _check_size(data, _get_max_size_kb(fmt))
+        if sized:
+            fmt.attach(_make_attachment_from_bytes(sized, file_name))
 
 
 def attach_text(
@@ -339,18 +350,18 @@ def attach_text(
         text: The text content to attach.
         name: Attachment name (defaults to ``"log.txt"``).
     """
-    fmt = _find_formatter(context)
-    if fmt is None:
+    fmts = _find_formatters(context)
+    if not fmts:
         return
 
-    max_kb = _get_max_size_kb(fmt)
-    encoded = text.encode("utf-8")
-    if max_kb > 0 and len(encoded) > max_kb * 1024:
-        encoded = encoded[: max_kb * 1024]
-        text = encoded.decode("utf-8", errors="ignore")
-
-    att = _make_attachment_from_text(text, name)
-    fmt.attach(att)
+    for fmt in fmts:
+        max_kb = _get_max_size_kb(fmt)
+        sized_text = text
+        encoded = sized_text.encode("utf-8")
+        if max_kb > 0 and len(encoded) > max_kb * 1024:
+            encoded = encoded[: max_kb * 1024]
+            sized_text = encoded.decode("utf-8", errors="ignore")
+        fmt.attach(_make_attachment_from_text(sized_text, name))
 
 
 def attach_json(
@@ -365,19 +376,19 @@ def attach_json(
         data: Any JSON-serialisable value (dict, list, etc.).
         name: Attachment name (defaults to ``"data.json"``).
     """
-    fmt = _find_formatter(context)
-    if fmt is None:
+    fmts = _find_formatters(context)
+    if not fmts:
         return
 
     text = json.dumps(data, indent=2, default=str, ensure_ascii=False)
-    max_kb = _get_max_size_kb(fmt)
-    encoded = text.encode("utf-8")
-    if max_kb > 0 and len(encoded) > max_kb * 1024:
-        encoded = encoded[: max_kb * 1024]
-        text = encoded.decode("utf-8", errors="ignore")
-
-    att = _make_attachment_from_text(text, name, "application/json")
-    fmt.attach(att)
+    for fmt in fmts:
+        max_kb = _get_max_size_kb(fmt)
+        sized_text = text
+        encoded = sized_text.encode("utf-8")
+        if max_kb > 0 and len(encoded) > max_kb * 1024:
+            encoded = encoded[: max_kb * 1024]
+            sized_text = encoded.decode("utf-8", errors="ignore")
+        fmt.attach(_make_attachment_from_text(sized_text, name, "application/json"))
 
 
 def log(context: Any, message: str) -> None:
@@ -387,10 +398,8 @@ def log(context: Any, message: str) -> None:
         context: Behave ``context`` object.
         message: The log message text.
     """
-    fmt = _find_formatter(context)
-    if fmt is None:
-        return
-    fmt.log(message)
+    for fmt in _find_formatters(context):
+        fmt.log(message)
 
 
 __all__ = [
@@ -401,6 +410,7 @@ __all__ = [
     "attach_json",
     "log",
     # Internal helpers
+    "_find_formatters",
     "_find_formatter",
     "_is_file_formatter",
     "_guess_mime_type",
