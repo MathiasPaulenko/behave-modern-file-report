@@ -5,7 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.0] - 2026-10-03
+
+### Fixed
+
+- `Collector` now routes background steps correctly: Behave announces them as the leading steps of each scenario, not after `formatter.background()`. Background sections are populated again in all formats, per scenario and at feature level.
+- Scenario outlines are detected via `scenario.parent.type == "scenario_outline"` and `rule_name` is resolved by walking the `parent` chain. `[OUTLINE]` and `Rule:` now appear in real Behave runs.
+- `attachments.attach_*`/`log` now deliver attachments to **every** active file formatter, not only the first one.
+- `ReportOptions.include_attachments` now defaults to `True` when the userdata key is absent (previously `from_dict` always disabled it).
+- `TXTWriter` no longer prints the scenario error twice when it is already shown under the failing step.
+- `include_attachments=false` now hides attachments completely in TXT, DOCX and HTML (previously only images were suppressed).
+- Step docstrings (`step.text`) are rendered in TXT, DOCX, ReportLab PDF and HTML output.
+- `DOCXWriter` now writes step errors, attachment names and logs inside the step's own table cell instead of disconnected paragraphs after the table; background-step attachments are included in the Attachments section.
+- The HTML template no longer HTML-escapes the inlined CSS (`{{ css|safe }}`), fixing quoted font names, TOC leaders and `content` rules under WeasyPrint.
+- TOC anchors in the HTML template are now unique across features.
+- `ReportLabWriter` now embeds image attachments inline (previously listed by name only), validates them eagerly so a broken image cannot kill `doc.build`, and includes background-step attachments/logs.
+- `BaseFileFormatter.close()` now finalizes any open scenario/feature, implements `rule_finished`, and flushes the output stream before closing.
+- `Collector._extract_error` prefers `step.exc_traceback` so reports contain real tracebacks even without `behave -v`.
+- `ReportOptions.from_dict` no longer crashes on non-integer values for `txt_width`, `attachment_max_size_kb` or `max_traceback_lines` — it falls back to defaults, consistent with `primary_color`/`pdf_engine`.
+- `render_html` falls back to the built-in CSS when a custom template directory does not provide `default.css`.
+
+### Changed
+
+- `behave.ini` formatter aliases are now documented explicitly; Behave 1.3.x does not load setuptools entry points for formatters, so `[behave.formatters]` (or a `module:Class` name) is required.
+- `examples/behave_project/environment.py` moved to `features/` so Behave actually loads the hooks.
+- `make lint` now also runs `ruff format --check .`, and the codebase was reformatted accordingly.
 
 ## [1.1.2] - 2026-07-22
 
