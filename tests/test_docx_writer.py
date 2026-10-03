@@ -22,40 +22,78 @@ from behave_modern_file_report.models import (
 
 
 def _make_step(
-    name: str = "step", keyword: str = "Given ", status: str = "passed",
-    duration: float = 0.01, error: ErrorInfo | None = None,
-    attachments: list[Attachment] | None = None, logs: list[str] | None = None,
+    name: str = "step",
+    keyword: str = "Given ",
+    status: str = "passed",
+    duration: float = 0.01,
+    error: ErrorInfo | None = None,
+    attachments: list[Attachment] | None = None,
+    logs: list[str] | None = None,
 ) -> Step:
-    return Step(keyword=keyword, name=name, status=status, duration=duration,
-                location="f:10", error=error, attachments=attachments or [], logs=logs or [])
+    return Step(
+        keyword=keyword,
+        name=name,
+        status=status,
+        duration=duration,
+        location="f:10",
+        error=error,
+        attachments=attachments or [],
+        logs=logs or [],
+    )
 
 
 def _make_scenario(
-    name: str = "S1", status: str = "passed", steps: list[Step] | None = None,
-    error: ErrorInfo | None = None, tags: list[str] | None = None,
-    is_outline: bool = False, background: Background | None = None,
+    name: str = "S1",
+    status: str = "passed",
+    steps: list[Step] | None = None,
+    error: ErrorInfo | None = None,
+    tags: list[str] | None = None,
+    is_outline: bool = False,
+    background: Background | None = None,
 ) -> ScenarioResult:
-    return ScenarioResult(name=name, status=status, duration=0.05, tags=tags or [],
-                          location="f:5", feature_name="F1", is_outline=is_outline,
-                          steps=steps or [], error=error, background=background)
+    return ScenarioResult(
+        name=name,
+        status=status,
+        duration=0.05,
+        tags=tags or [],
+        location="f:5",
+        feature_name="F1",
+        is_outline=is_outline,
+        steps=steps or [],
+        error=error,
+        background=background,
+    )
 
 
 def _make_feature(
-    name: str = "F1", scenarios: list[ScenarioResult] | None = None,
-    background: Background | None = None, tags: list[str] | None = None,
+    name: str = "F1",
+    scenarios: list[ScenarioResult] | None = None,
+    background: Background | None = None,
+    tags: list[str] | None = None,
     description: str = "",
 ) -> FeatureSummary:
-    return FeatureSummary(name=name, description=description, duration=0.1,
-                          tags=tags or [], location="f:1", scenarios=scenarios or [],
-                          background=background)
+    return FeatureSummary(
+        name=name,
+        description=description,
+        duration=0.1,
+        tags=tags or [],
+        location="f:1",
+        scenarios=scenarios or [],
+        background=background,
+    )
 
 
 def _make_run(features: list[FeatureSummary] | None = None, title: str = "Test") -> RunSummary:
-    return RunSummary(run_id="r1", title=title, project_name="P",
-                      start_time="2025-01-01T10:00:00+00:00",
-                      end_time="2025-01-01T10:00:05+00:00",
-                      duration=5.0, features=features or [],
-                      environment=Environment(python_version="3.14", platform="linux"))
+    return RunSummary(
+        run_id="r1",
+        title=title,
+        project_name="P",
+        start_time="2025-01-01T10:00:00+00:00",
+        end_time="2025-01-01T10:00:05+00:00",
+        duration=5.0,
+        features=features or [],
+        environment=Environment(python_version="3.14", platform="linux"),
+    )
 
 
 def _write(run: RunSummary, tmp_path: Path, opts: ReportOptions | None = None) -> str:
@@ -66,6 +104,7 @@ def _write(run: RunSummary, tmp_path: Path, opts: ReportOptions | None = None) -
 
 def _read_docx(path: str) -> Any:
     from docx import Document
+
     return Document(path)
 
 
@@ -81,26 +120,31 @@ def _all_text(doc: Any) -> str:
 
 # --- Basic generation ---
 
+
 def test_generates_valid_docx(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(scenarios=[_make_scenario()])]), tmp_path)
     doc = _read_docx(path)
     assert len(doc.paragraphs) > 0
+
 
 def test_cover_title(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature()]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "Test" in text
 
+
 def test_cover_project_name(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature()]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "P" in text
+
 
 def test_cover_metadata(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature()]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "Started" in text
     assert "2025-01-01" in text
+
 
 def test_summary_section(tmp_path: Path) -> None:
     feat = _make_feature(
@@ -111,10 +155,12 @@ def test_summary_section(tmp_path: Path) -> None:
     assert "Executive Summary" in text
     assert "Scenarios" in text
 
+
 def test_feature_heading(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(name="Login")]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "Login" in text
+
 
 def test_scenario_heading(tmp_path: Path) -> None:
     feat = _make_feature(scenarios=[_make_scenario(name="Login works")])
@@ -122,11 +168,13 @@ def test_scenario_heading(tmp_path: Path) -> None:
     text = _all_text(_read_docx(path))
     assert "Login works" in text
 
+
 def test_step_in_table(tmp_path: Path) -> None:
     step = _make_step(name="user on page")
     path = _write(_make_run([_make_feature(scenarios=[_make_scenario(steps=[step])])]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "user on page" in text
+
 
 def test_status_labels(tmp_path: Path) -> None:
     feat = _make_feature(
@@ -137,6 +185,7 @@ def test_status_labels(tmp_path: Path) -> None:
     assert "PASSED" in text
     assert "FAILED" in text
 
+
 def test_error_block(tmp_path: Path) -> None:
     err = ErrorInfo(message="boom", traceback="Traceback:\n  File x", exception_type="ValueError")
     feat = _make_feature(scenarios=[_make_scenario(status="failed", error=err)])
@@ -146,12 +195,14 @@ def test_error_block(tmp_path: Path) -> None:
     assert "boom" in text
     assert "ValueError" in text
 
+
 def test_error_without_traceback(tmp_path: Path) -> None:
     err = ErrorInfo(message="no tb", traceback="", exception_type="RuntimeError")
     feat = _make_feature(scenarios=[_make_scenario(status="failed", error=err)])
     path = _write(_make_run([feat]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "no tb" in text
+
 
 def test_error_without_exception_type(tmp_path: Path) -> None:
     err = ErrorInfo(message="unknown", traceback="", exception_type="")
@@ -160,26 +211,31 @@ def test_error_without_exception_type(tmp_path: Path) -> None:
     text = _all_text(_read_docx(path))
     assert "unknown" in text
 
+
 def test_feature_tags(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(tags=["auth", "smoke"])]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "auth" in text
     assert "smoke" in text
 
+
 def test_scenario_tags(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(scenarios=[_make_scenario(tags=["fast"])])]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "fast" in text
+
 
 def test_feature_description(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(description="A test feature")]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "A test feature" in text
 
+
 def test_outline_tag(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(scenarios=[_make_scenario(is_outline=True)])]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "OUTLINE" in text
+
 
 def test_rule_name(tmp_path: Path) -> None:
     scn = _make_scenario()
@@ -187,6 +243,7 @@ def test_rule_name(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(scenarios=[scn])]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "Auth rule" in text
+
 
 def test_background(tmp_path: Path) -> None:
     bg = Background(name="Setup", steps=[_make_step(name="app running")])
@@ -196,17 +253,20 @@ def test_background(tmp_path: Path) -> None:
     assert "Setup" in text
     assert "app running" in text
 
+
 def test_scenario_background(tmp_path: Path) -> None:
     bg = Background(name="Scn bg", steps=[_make_step(name="setup")])
     path = _write(_make_run([_make_feature(scenarios=[_make_scenario(background=bg)])]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "Scn bg" in text
 
+
 def test_attachments_listed(tmp_path: Path) -> None:
     step = _make_step(name="step", attachments=[Attachment(name="shot.png", mime_type="image/png")])
     path = _write(_make_run([_make_feature(scenarios=[_make_scenario(steps=[step])])]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "shot.png" in text
+
 
 def test_step_logs(tmp_path: Path) -> None:
     step = _make_step(name="step", logs=["navigated", "clicked"])
@@ -215,12 +275,14 @@ def test_step_logs(tmp_path: Path) -> None:
     assert "navigated" in text
     assert "clicked" in text
 
+
 def test_step_error_in_table(tmp_path: Path) -> None:
     err = ErrorInfo(message="step err", traceback="", exception_type="Err")
     step = _make_step(name="bad", status="failed", error=err)
     path = _write(_make_run([_make_feature(scenarios=[_make_scenario(steps=[step])])]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "step err" in text
+
 
 def test_environment_section(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature()]), tmp_path)
@@ -229,10 +291,12 @@ def test_environment_section(tmp_path: Path) -> None:
     assert "3.14" in text
     assert "linux" in text
 
+
 def test_toc_placeholder(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature()]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "Table of Contents" in text
+
 
 def test_multiple_features(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(name="A"), _make_feature(name="B")]), tmp_path)
@@ -240,10 +304,12 @@ def test_multiple_features(tmp_path: Path) -> None:
     assert "A" in text
     assert "B" in text
 
+
 def test_empty_run(tmp_path: Path) -> None:
     path = _write(_make_run([]), tmp_path)
     doc = _read_docx(path)
     assert len(doc.paragraphs) > 0
+
 
 def test_feature_without_tags_description_location(tmp_path: Path) -> None:
     feat = _make_feature(name="Minimal", tags=[], description="")
@@ -251,6 +317,7 @@ def test_feature_without_tags_description_location(tmp_path: Path) -> None:
     path = _write(_make_run([feat]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "Minimal" in text
+
 
 def test_scenario_without_tags_rule_background(tmp_path: Path) -> None:
     scn = _make_scenario(name="Min", tags=[])
@@ -260,11 +327,13 @@ def test_scenario_without_tags_rule_background(tmp_path: Path) -> None:
     text = _all_text(_read_docx(path))
     assert "Min" in text
 
+
 def test_skipped_status(tmp_path: Path) -> None:
     feat = _make_feature(scenarios=[_make_scenario(status="skipped")])
     path = _write(_make_run([feat]), tmp_path)
     text = _all_text(_read_docx(path))
     assert "SKIPPED" in text
+
 
 def test_undefined_status(tmp_path: Path) -> None:
     feat = _make_feature(scenarios=[_make_scenario(status="undefined")])
@@ -272,10 +341,12 @@ def test_undefined_status(tmp_path: Path) -> None:
     text = _all_text(_read_docx(path))
     assert "UNDEFINED" in text
 
+
 def test_step_table_empty_steps(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(scenarios=[_make_scenario(steps=[])])]), tmp_path)
     doc = _read_docx(path)
     assert len(doc.paragraphs) > 0
+
 
 def test_feature_summary_table(tmp_path: Path) -> None:
     feat = _make_feature(
@@ -285,15 +356,18 @@ def test_feature_summary_table(tmp_path: Path) -> None:
     text = _all_text(_read_docx(path))
     assert "Pass rate" in text
 
+
 def test_progress_bar(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature(scenarios=[_make_scenario()])]), tmp_path)
     doc = _read_docx(path)
     assert len(doc.tables) > 0
 
+
 def test_custom_title(tmp_path: Path) -> None:
     path = _write(_make_run([_make_feature()], title="Custom"), tmp_path)
     text = _all_text(_read_docx(path))
     assert "Custom" in text
+
 
 def test_cover_without_project(tmp_path: Path) -> None:
     run = _make_run([_make_feature()])
@@ -301,6 +375,7 @@ def test_cover_without_project(tmp_path: Path) -> None:
     path = _write(run, tmp_path)
     doc = _read_docx(path)
     assert len(doc.paragraphs) > 0
+
 
 def test_environment_empty_fields(tmp_path: Path) -> None:
     run = _make_run([_make_feature()])
@@ -381,8 +456,8 @@ def test_attachment_binary_shows_name_only(tmp_path: Path) -> None:
     assert "data.bin" in text
 
 
-def test_attachment_image_shows_name_when_include_disabled(tmp_path: Path) -> None:
-    """Image attachment shows name only when include_attachments is False."""
+def test_attachments_omitted_when_include_disabled(tmp_path: Path) -> None:
+    """All attachments are omitted when include_attachments is False."""
     att = Attachment(
         name="screenshot.png",
         mime_type="image/png",
@@ -395,7 +470,7 @@ def test_attachment_image_shows_name_when_include_disabled(tmp_path: Path) -> No
     p = tmp_path / "report.docx"
     writer.write(run, str(p))
     text = _all_text(_read_docx(str(p)))
-    assert "screenshot.png" in text
+    assert "screenshot.png" not in text
 
 
 def test_attachment_multiple_all_shown(tmp_path: Path) -> None:

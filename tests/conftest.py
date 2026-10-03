@@ -321,4 +321,3 @@ def behave_undefined_step() -> SimpleNamespace:
         exception=None,
         error_message=None,
     )
-

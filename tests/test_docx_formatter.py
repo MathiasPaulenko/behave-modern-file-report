@@ -61,6 +61,7 @@ def _make_simple_run() -> RunSummary:
 
 def _read_docx(path: str) -> Any:
     from docx import Document
+
     return Document(path)
 
 
@@ -107,10 +108,12 @@ def test_resolves_docx_specific_options() -> None:
 
 
 def test_docx_specific_overrides_global() -> None:
-    config = _mock_config({
-        "bmfr.title": "Global Title",
-        "bmfr.docx.title": "DOCX Title",
-    })
+    config = _mock_config(
+        {
+            "bmfr.title": "Global Title",
+            "bmfr.docx.title": "DOCX Title",
+        }
+    )
     fmt = DOCXFormatter(config=config)
     assert fmt._options.title == "DOCX Title"
 
@@ -177,24 +180,51 @@ def test_close_writes_report(tmp_path: Path) -> None:
     path = tmp_path / "report.docx"
     opener = MockStreamOpener(str(path))
     fmt = DOCXFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="S1", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="step", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="step", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="S1",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     doc = _read_docx(str(path))
@@ -237,24 +267,51 @@ def test_heading1_for_feature(tmp_path: Path) -> None:
     path = tmp_path / "report.docx"
     opener = MockStreamOpener(str(path))
     fmt = DOCXFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="Login", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="Login ok", tags=[], location="f:5",
-        feature=SimpleNamespace(name="Login", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="page", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="page", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="Login",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="Login ok",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="Login", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="page",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="page",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     doc = _read_docx(str(path))
@@ -266,24 +323,51 @@ def test_heading2_for_scenario(tmp_path: Path) -> None:
     path = tmp_path / "report.docx"
     opener = MockStreamOpener(str(path))
     fmt = DOCXFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="My Scenario", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="x", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="x", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="My Scenario",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="x",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="x",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     doc = _read_docx(str(path))
@@ -295,24 +379,51 @@ def test_status_badges_present(tmp_path: Path) -> None:
     path = tmp_path / "report.docx"
     opener = MockStreamOpener(str(path))
     fmt = DOCXFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="S1", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="x", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="x", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="S1",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="x",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="x",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     doc = _read_docx(str(path))
@@ -324,24 +435,51 @@ def test_step_tables_present(tmp_path: Path) -> None:
     path = tmp_path / "report.docx"
     opener = MockStreamOpener(str(path))
     fmt = DOCXFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="S1", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="step1", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="step1", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="S1",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step1",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step1",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     doc = _read_docx(str(path))
@@ -354,27 +492,52 @@ def test_error_block_present(tmp_path: Path) -> None:
     path = tmp_path / "report.docx"
     opener = MockStreamOpener(str(path))
     fmt = DOCXFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="S1", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="S1",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
     try:
         raise AssertionError("fail!") from None
     except AssertionError as exc:
         failed_step = SimpleNamespace(
-            keyword="Then ", name="bad", status="failed",
-            location="f:15", duration=0.01, text=None,
-            error=exc, exception=None, error_message=None,
+            keyword="Then ",
+            name="bad",
+            status="failed",
+            location="f:15",
+            duration=0.01,
+            text=None,
+            error=exc,
+            exception=None,
+            error_message=None,
         )
-    fmt.step(SimpleNamespace(
-        keyword="Then ", name="bad", status="failed",
-        location="f:15", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.step(
+        SimpleNamespace(
+            keyword="Then ",
+            name="bad",
+            status="failed",
+            location="f:15",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.result(failed_step)
     fmt.eof()
     fmt.close()
@@ -396,25 +559,51 @@ def test_full_lifecycle_with_options(tmp_path: Path) -> None:
     fmt = DOCXFormatter(stream_opener=opener, config=config)
     assert fmt._options.title == "Custom DOCX Report"
 
-    fmt.feature(SimpleNamespace(
-        name="Auth", tags=["security"], location="f:1",
-        description="Auth flows.",
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="Login ok", tags=["smoke"], location="f:5",
-        feature=SimpleNamespace(name="Auth", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="user exists", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="user exists", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="Auth",
+            tags=["security"],
+            location="f:1",
+            description="Auth flows.",
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="Login ok",
+            tags=["smoke"],
+            location="f:5",
+            feature=SimpleNamespace(name="Auth", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="user exists",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="user exists",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     doc = _read_docx(str(path))

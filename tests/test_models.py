@@ -300,6 +300,7 @@ def test_environment_capture_handles_missing_behave_and_git(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Environment.capture tolerates missing behave package and git commands."""
+
     def _raise(*args: Any, **kwargs: Any) -> Any:
         raise RuntimeError("not available")
 
@@ -434,13 +435,15 @@ def test_report_options_from_dict_empty() -> None:
 
 def test_report_options_from_dict_global() -> None:
     """from_dict resolves global bmfr.* keys."""
-    opts = ReportOptions.from_dict({
-        "bmfr.only_failed": "true",
-        "bmfr.title": "QA Report",
-        "bmfr.primary_color": "#1E90FF",
-        "bmfr.txt_width": "120",
-        "bmfr.pdf_engine": "reportlab",
-    })
+    opts = ReportOptions.from_dict(
+        {
+            "bmfr.only_failed": "true",
+            "bmfr.title": "QA Report",
+            "bmfr.primary_color": "#1E90FF",
+            "bmfr.txt_width": "120",
+            "bmfr.pdf_engine": "reportlab",
+        }
+    )
     assert opts.only_failed is True
     assert opts.title == "QA Report"
     assert opts.primary_color == "#1e90ff"
@@ -477,10 +480,12 @@ def test_report_options_from_dict_format_override() -> None:
 
 def test_report_options_from_dict_no_format_override() -> None:
     """from_dict without format_key uses only global keys."""
-    opts = ReportOptions.from_dict({
-        "bmfr.title": "Global Title",
-        "bmfr.pdf.title": "PDF Title",
-    })
+    opts = ReportOptions.from_dict(
+        {
+            "bmfr.title": "Global Title",
+            "bmfr.pdf.title": "PDF Title",
+        }
+    )
     assert opts.title == "Global Title"
 
 

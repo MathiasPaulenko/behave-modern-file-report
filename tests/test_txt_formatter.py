@@ -99,10 +99,12 @@ def test_description_set() -> None:
 
 def test_resolves_txt_specific_options() -> None:
     """bmfr.txt.* keys are resolved by the formatter."""
-    config = _mock_config({
-        "bmfr.txt_width": "120",
-        "bmfr.txt_ascii": "true",
-    })
+    config = _mock_config(
+        {
+            "bmfr.txt_width": "120",
+            "bmfr.txt_ascii": "true",
+        }
+    )
     fmt = TXTFormatter(config=config)
     assert fmt._options.txt_width == 120
     assert fmt._options.txt_ascii is True
@@ -110,10 +112,12 @@ def test_resolves_txt_specific_options() -> None:
 
 def test_txt_specific_overrides_global() -> None:
     """bmfr.txt.title takes precedence over bmfr.title."""
-    config = _mock_config({
-        "bmfr.title": "Global Title",
-        "bmfr.txt.title": "TXT Title",
-    })
+    config = _mock_config(
+        {
+            "bmfr.title": "Global Title",
+            "bmfr.txt.title": "TXT Title",
+        }
+    )
     fmt = TXTFormatter(config=config)
     assert fmt._options.title == "TXT Title"
 
@@ -170,24 +174,51 @@ def test_close_writes_report_via_stream_opener() -> None:
     opener = MockStreamOpener()
     fmt = TXTFormatter(stream_opener=opener)
     # Simulate a full lifecycle
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="S1", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="step", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="step", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="S1",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     content = opener.stream.getvalue()
@@ -247,36 +278,64 @@ def test_close_without_stream_opener_writes_file(
 
 def test_full_lifecycle_with_options() -> None:
     """Full lifecycle with custom options produces expected output."""
-    config = _mock_config({
-        "bmfr.txt_width": "80",
-        "bmfr.txt_ascii": "true",
-        "bmfr.title": "Integration TXT Report",
-    })
+    config = _mock_config(
+        {
+            "bmfr.txt_width": "80",
+            "bmfr.txt_ascii": "true",
+            "bmfr.title": "Integration TXT Report",
+        }
+    )
     opener = MockStreamOpener()
     fmt = TXTFormatter(stream_opener=opener, config=config)
     assert fmt._options.txt_width == 80
     assert fmt._options.txt_ascii is True
     assert fmt._options.title == "Integration TXT Report"
 
-    fmt.feature(SimpleNamespace(
-        name="Login", tags=["auth"], location="f:1",
-        description="Login flows.",
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="Login succeeds", tags=["smoke"], location="f:5",
-        feature=SimpleNamespace(name="Login", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="user on page", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="user on page", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="Login",
+            tags=["auth"],
+            location="f:1",
+            description="Login flows.",
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="Login succeeds",
+            tags=["smoke"],
+            location="f:5",
+            feature=SimpleNamespace(name="Login", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="user on page",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="user on page",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
 
@@ -299,24 +358,49 @@ def test_write_report_with_failed_scenario() -> None:
         raise AssertionError("something went wrong") from None
     except AssertionError as exc:
         failed_step = SimpleNamespace(
-            keyword="Then ", name="bad step", status="failed",
-            location="f:15", duration=0.01, text=None,
-            error=exc, exception=None, error_message=None,
+            keyword="Then ",
+            name="bad step",
+            status="failed",
+            location="f:15",
+            duration=0.01,
+            text=None,
+            error=exc,
+            exception=None,
+            error_message=None,
         )
 
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="S1", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Then ", name="bad step", status="failed",
-        location="f:15", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="S1",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Then ",
+            name="bad step",
+            status="failed",
+            location="f:15",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.result(failed_step)
     fmt.eof()
     fmt.close()

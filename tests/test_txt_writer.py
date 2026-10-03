@@ -158,10 +158,12 @@ def test_cover_default_title() -> None:
 
 def test_summary_contains_totals() -> None:
     """Summary section contains feature and scenario counts."""
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="passed"),
-        _make_scenario(name="S2", status="failed"),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="passed"),
+            _make_scenario(name="S2", status="failed"),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "Features:    1" in output
@@ -172,11 +174,13 @@ def test_summary_contains_totals() -> None:
 
 def test_summary_pass_rate() -> None:
     """Summary shows pass rate percentage."""
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="passed"),
-        _make_scenario(name="S2", status="passed"),
-        _make_scenario(name="S3", status="failed"),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="passed"),
+            _make_scenario(name="S2", status="passed"),
+            _make_scenario(name="S3", status="failed"),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "Pass rate:" in output
@@ -225,10 +229,12 @@ def test_step_name_in_output() -> None:
 
 def test_status_labels_in_output() -> None:
     """Status labels (PASSED, FAILED) appear in the output."""
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="passed"),
-        _make_scenario(name="S2", status="failed"),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="passed"),
+            _make_scenario(name="S2", status="failed"),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "PASSED" in output
@@ -237,9 +243,11 @@ def test_status_labels_in_output() -> None:
 
 def test_skipped_status_in_output() -> None:
     """Skipped status appears in the output."""
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="skipped"),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="skipped"),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "SKIPPED" in output
@@ -247,9 +255,11 @@ def test_skipped_status_in_output() -> None:
 
 def test_undefined_status_in_output() -> None:
     """Undefined status appears in the output."""
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="undefined"),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="undefined"),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "UNDEFINED" in output
@@ -266,9 +276,11 @@ def test_feature_tags_in_output() -> None:
 
 def test_scenario_tags_in_output() -> None:
     """Scenario tags appear in the output."""
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", tags=["fast"]),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", tags=["fast"]),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "fast" in output
@@ -284,9 +296,11 @@ def test_feature_description_in_output() -> None:
 
 def test_outline_tag_in_output() -> None:
     """Scenario outline has [OUTLINE] tag in output."""
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="Data driven", is_outline=True),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="Data driven", is_outline=True),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "[OUTLINE]" in output
@@ -309,9 +323,12 @@ def test_rule_name_in_output() -> None:
 
 def test_background_in_output() -> None:
     """Background steps appear in the output."""
-    bg = Background(name="Common setup", steps=[
-        _make_step(name="app is running", keyword="Given "),
-    ])
+    bg = Background(
+        name="Common setup",
+        steps=[
+            _make_step(name="app is running", keyword="Given "),
+        ],
+    )
     feat = _make_feature(background=bg, scenarios=[_make_scenario(name="S1")])
     run = _make_run(features=[feat])
     output = _write_report(run)
@@ -322,12 +339,17 @@ def test_background_in_output() -> None:
 
 def test_scenario_background_in_output() -> None:
     """Scenario-level background appears in the output."""
-    bg = Background(name="Scenario bg", steps=[
-        _make_step(name="setup step", keyword="Given "),
-    ])
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", background=bg),
-    ])
+    bg = Background(
+        name="Scenario bg",
+        steps=[
+            _make_step(name="setup step", keyword="Given "),
+        ],
+    )
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", background=bg),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "Scenario bg" in output
@@ -346,9 +368,11 @@ def test_error_message_in_output() -> None:
         traceback="Traceback (most recent call last):\n  ...",
         exception_type="AssertionError",
     )
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="failed", error=error),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="failed", error=error),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "ERROR" in output
@@ -363,9 +387,11 @@ def test_error_traceback_in_output() -> None:
         traceback="Traceback:\n  File test.py:1\n    raise ValueError",
         exception_type="ValueError",
     )
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="failed", error=error),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="failed", error=error),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "Traceback:" in output
@@ -435,10 +461,12 @@ def test_width_affects_separator_length() -> None:
 
 def test_ascii_mode_uses_ascii_icons() -> None:
     """ASCII mode uses [PASS]/[FAIL] instead of unicode symbols."""
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="passed"),
-        _make_scenario(name="S2", status="failed"),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="passed"),
+            _make_scenario(name="S2", status="failed"),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run, ReportOptions(txt_ascii=True))
     assert "[PASS]" in output
@@ -447,10 +475,12 @@ def test_ascii_mode_uses_ascii_icons() -> None:
 
 def test_unicode_mode_uses_unicode_icons() -> None:
     """Unicode mode uses checkmark/cross symbols."""
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="passed"),
-        _make_scenario(name="S2", status="failed"),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="passed"),
+            _make_scenario(name="S2", status="failed"),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run, ReportOptions(txt_ascii=False))
     assert "\u2713" in output
@@ -459,9 +489,11 @@ def test_unicode_mode_uses_unicode_icons() -> None:
 
 def test_width_wraps_long_text() -> None:
     """Long step names are wrapped to the configured width."""
-    long_name = "This is a very long step name that should be wrapped " \
-                "because it exceeds the configured line width and needs " \
-                "to be split across multiple lines for readability"
+    long_name = (
+        "This is a very long step name that should be wrapped "
+        "because it exceeds the configured line width and needs "
+        "to be split across multiple lines for readability"
+    )
     step = _make_step(name=long_name)
     feat = _make_feature(scenarios=[_make_scenario(steps=[step])])
     run = _make_run(features=[feat])
@@ -567,9 +599,11 @@ def test_step_with_zero_duration_omits_parens() -> None:
 def test_error_without_exception_type() -> None:
     """Error without exception_type still shows the message."""
     error = ErrorInfo(message="unknown error", traceback="", exception_type="")
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="failed", error=error),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="failed", error=error),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "ERROR" in output
@@ -579,9 +613,11 @@ def test_error_without_exception_type() -> None:
 def test_error_without_traceback() -> None:
     """Error with empty traceback only shows the header."""
     error = ErrorInfo(message="no tb", traceback="", exception_type="ValueError")
-    feat = _make_feature(scenarios=[
-        _make_scenario(name="S1", status="failed", error=error),
-    ])
+    feat = _make_feature(
+        scenarios=[
+            _make_scenario(name="S1", status="failed", error=error),
+        ]
+    )
     run = _make_run(features=[feat])
     output = _write_report(run)
     assert "no tb" in output

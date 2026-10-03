@@ -39,7 +39,7 @@
 }
 
 body {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, &#34;Segoe UI&#34;, sans-serif;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 10.5pt;
   line-height: 1.5;
   color: var(--color-text);
@@ -54,7 +54,7 @@ h1, h2, h3, h4 {
 }
 
 .section-title {
-  font-family: &#34;Source Serif 4&#34;, Georgia, serif;
+  font-family: "Source Serif 4", Georgia, serif;
   font-size: 18pt;
   color: var(--color-primary-dark);
   border-bottom: 2px solid var(--color-primary);
@@ -163,7 +163,7 @@ h1, h2, h3, h4 {
 }
 
 .toc a::after {
-  content: leader(&#39;.&#39;) target-counter(attr(href url), page);
+  content: leader('.') target-counter(attr(href url), page);
   color: var(--color-text-muted);
 }
 
@@ -305,7 +305,7 @@ tr:nth-child(even) {
 }
 
 .tags::before {
-  content: &#34;@&#34;;
+  content: "@";
   margin-right: 2px;
 }
 
@@ -350,6 +350,18 @@ tr:nth-child(even) {
   background: #FEF2F2;
 }
 
+.step-text {
+  margin: 6px 0 0 0;
+  padding: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: "Fira Code", Consolas, Monaco, monospace;
+  font-size: 8.5pt;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Summary table */
 .summary-table th:nth-child(1),
 .summary-table td:nth-child(1) { width: 28%; }
@@ -389,7 +401,7 @@ tr:nth-child(even) {
   background: #FFFFFF;
   border: 1px solid var(--color-border);
   padding: 8px;
-  font-family: &#34;Fira Code&#34;, Consolas, Monaco, monospace;
+  font-family: "Fira Code", Consolas, Monaco, monospace;
   font-size: 9pt;
   white-space: pre-wrap;
   word-break: break-word;
@@ -437,7 +449,7 @@ tr:nth-child(even) {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   padding: 8px;
-  font-family: &#34;Fira Code&#34;, Consolas, Monaco, monospace;
+  font-family: "Fira Code", Consolas, Monaco, monospace;
   font-size: 9pt;
   white-space: pre-wrap;
   word-break: break-word;
@@ -456,7 +468,7 @@ tr:nth-child(even) {
 
 /* Utility */
 code, pre code {
-  font-family: &#34;Fira Code&#34;, Consolas, Monaco, monospace;
+  font-family: "Fira Code", Consolas, Monaco, monospace;
   background: var(--color-surface);
   padding: 1px 3px;
   border-radius: 3px;
@@ -495,7 +507,7 @@ figure {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   padding: 8px;
-  font-family: &#34;Fira Code&#34;, Consolas, Monaco, monospace;
+  font-family: "Fira Code", Consolas, Monaco, monospace;
   font-size: 9pt;
   white-space: pre-wrap;
   word-break: break-word;
@@ -541,7 +553,7 @@ figure {
       <li>
         <a href="#feature-1">Login</a>
         <ul>
-          <li><a href="#scenario-0-1">Successful login</a></li>
+          <li><a href="#scenario-1-1">Successful login</a></li>
           <li><a href="#scenario-1-2">Failed login</a></li>
         </ul>
       </li>
@@ -655,7 +667,7 @@ figure {
     </table>
 
 
-    <section class="scenario" id="scenario-0-1">
+    <section class="scenario" id="scenario-1-1">
       <header class="scenario-header">
         <h2>Successful login</h2>
         <span class="badge badge-passed">passed</span>
@@ -678,17 +690,20 @@ figure {
         <tbody>
           <tr class="step-passed">
             <td><span class="status-icon status-passed">✓</span></td>
-            <td><strong>Given</strong> the user is on the login page</td>
+            <td><strong>Given</strong> the user is on the login page
+</td>
             <td>50ms</td>
           </tr>
           <tr class="step-passed">
             <td><span class="status-icon status-passed">✓</span></td>
-            <td><strong>When</strong> the user enters valid credentials</td>
+            <td><strong>When</strong> the user enters valid credentials
+</td>
             <td>100ms</td>
           </tr>
           <tr class="step-passed">
             <td><span class="status-icon status-passed">✓</span></td>
-            <td><strong>Then</strong> the user should see the dashboard</td>
+            <td><strong>Then</strong> the user should see the dashboard
+</td>
             <td>30ms</td>
           </tr>
         </tbody>
@@ -720,12 +735,14 @@ figure {
         <tbody>
           <tr class="step-passed">
             <td><span class="status-icon status-passed">✓</span></td>
-            <td><strong>Given</strong> the user is on the login page</td>
+            <td><strong>Given</strong> the user is on the login page
+</td>
             <td>50ms</td>
           </tr>
           <tr class="step-failed">
             <td><span class="status-icon status-failed">✗</span></td>
-            <td><strong>When</strong> the user enters invalid credentials</td>
+            <td><strong>When</strong> the user enters invalid credentials
+</td>
             <td>80ms</td>
           </tr>
         </tbody>

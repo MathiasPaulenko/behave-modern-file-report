@@ -13,6 +13,7 @@ from behave_modern_file_report.attachments import (
     _capture_screenshot,
     _check_size,
     _find_formatter,
+    _find_formatters,
     _get_max_size_kb,
     _guess_mime_type,
     _is_file_formatter,
@@ -131,6 +132,35 @@ def test_find_formatter_pdf_formatter() -> None:
     assert _find_formatter(ctx) is fmt
 
 
+def test_find_formatters_returns_all_matches() -> None:
+    """_find_formatters returns every active file formatter."""
+    fmt1 = _make_formatter()
+    fmt2 = PDFFormatter(stream_opener=MockStreamOpener("report.pdf"))
+    ctx = SimpleNamespace(_runner=SimpleNamespace(formatters=[fmt1, fmt2]))
+    found = _find_formatters(ctx)
+    assert found == [fmt1, fmt2]
+
+
+def test_attach_reaches_all_formatters() -> None:
+    """attach_text delivers the attachment to every file formatter."""
+    fmt1 = _make_formatter()
+    fmt2 = _make_formatter()
+    ctx = SimpleNamespace(_runner=SimpleNamespace(formatters=[fmt1, fmt2]))
+    attach_text(ctx, "hello", "note.txt")
+    assert len(fmt1._attachment_buffer) == 1
+    assert len(fmt2._attachment_buffer) == 1
+
+
+def test_log_reaches_all_formatters() -> None:
+    """log delivers the message to every file formatter."""
+    fmt1 = _make_formatter()
+    fmt2 = _make_formatter()
+    ctx = SimpleNamespace(_runner=SimpleNamespace(formatters=[fmt1, fmt2]))
+    attach_log(ctx, "msg")
+    assert fmt1._log_buffer == ["msg"]
+    assert fmt2._log_buffer == ["msg"]
+
+
 # ---------------------------------------------------------------------------
 # _is_file_formatter
 # ---------------------------------------------------------------------------
@@ -199,6 +229,7 @@ def test_bytes_to_base64_binary() -> None:
     data = bytes(range(256))
     result = _bytes_to_base64(data)
     import base64
+
     assert result == base64.b64encode(data).decode("ascii")
 
 
@@ -352,27 +383,54 @@ def test_attach_and_log_combined() -> None:
 
 def test_result_flushes_buffers_to_step() -> None:
     fmt = _make_formatter()
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="S1", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="step", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="S1",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     att = Attachment(name="log.txt", text="hello")
     fmt.attach(att)
     fmt.log("log line")
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="step", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     assert len(fmt._attachment_buffer) == 0
     assert len(fmt._log_buffer) == 0
     # After result, step is finalized — check via collector's scenario
@@ -389,11 +447,19 @@ def test_result_clears_buffers_even_without_step() -> None:
     fmt = _make_formatter()
     fmt.attach(Attachment(name="orphan.txt", text="orphan"))
     fmt.log("orphan log")
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="step", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     assert len(fmt._attachment_buffer) == 0
     assert len(fmt._log_buffer) == 0
 
@@ -406,39 +472,82 @@ def test_buffers_empty_after_init() -> None:
 
 def test_attach_then_result_then_attach_again() -> None:
     fmt = _make_formatter()
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="S1", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="S1",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
     # First step
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="step1", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step1",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.attach(Attachment(name="att1.txt", text="a1"))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="step1", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step1",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     # Second step
-    fmt.step(SimpleNamespace(
-        keyword="When ", name="step2", status="passed",
-        location="f:15", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.step(
+        SimpleNamespace(
+            keyword="When ",
+            name="step2",
+            status="passed",
+            location="f:15",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.attach(Attachment(name="att2.txt", text="a2"))
     fmt.log("log2")
-    fmt.result(SimpleNamespace(
-        keyword="When ", name="step2", status="passed",
-        location="f:15", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.result(
+        SimpleNamespace(
+            keyword="When ",
+            name="step2",
+            status="passed",
+            location="f:15",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     scenario = fmt._collector._current_scenario
     assert scenario is not None
     assert len(scenario.steps) == 2
@@ -867,6 +976,7 @@ def test_attach_json_basic() -> None:
     assert att.name == "data.json"
     assert att.mime_type == "application/json"
     import json
+
     parsed = json.loads(att.text or "")
     assert parsed == {"key": "value"}
 
@@ -877,6 +987,7 @@ def test_attach_json_list() -> None:
     attach_json(ctx, [1, 2, 3])
     att = fmt._attachment_buffer[0]
     import json
+
     assert json.loads(att.text or "") == [1, 2, 3]
 
 
@@ -894,6 +1005,7 @@ def test_attach_json_nested() -> None:
     attach_json(ctx, data)
     att = fmt._attachment_buffer[0]
     import json
+
     assert json.loads(att.text or "") == data
 
 
@@ -924,6 +1036,7 @@ def test_attach_json_non_positive_max_size_no_truncation() -> None:
     att = fmt._attachment_buffer[0]
     assert att.text is not None
     import json
+
     assert json.loads(att.text) == big_data
 
 
@@ -962,31 +1075,37 @@ def test_log_multiple_messages() -> None:
 
 def test_package_exports_attach_screenshot() -> None:
     import behave_modern_file_report as pkg
+
     assert hasattr(pkg, "attach_screenshot")
 
 
 def test_package_exports_attach_file() -> None:
     import behave_modern_file_report as pkg
+
     assert hasattr(pkg, "attach_file")
 
 
 def test_package_exports_attach_text() -> None:
     import behave_modern_file_report as pkg
+
     assert hasattr(pkg, "attach_text")
 
 
 def test_package_exports_attach_json() -> None:
     import behave_modern_file_report as pkg
+
     assert hasattr(pkg, "attach_json")
 
 
 def test_package_exports_log() -> None:
     import behave_modern_file_report as pkg
+
     assert hasattr(pkg, "log")
 
 
 def test_package_all_contains_public_api() -> None:
     import behave_modern_file_report as pkg
+
     assert "attach_screenshot" in pkg.__all__
     assert "attach_file" in pkg.__all__
     assert "attach_text" in pkg.__all__

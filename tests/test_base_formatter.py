@@ -61,15 +61,22 @@ def _mock_config(userdata: dict[str, str] | None = None) -> SimpleNamespace:
 
 def _mock_feature(name: str = "F1") -> SimpleNamespace:
     return SimpleNamespace(
-        name=name, tags=[], location="f:1", description=None,
+        name=name,
+        tags=[],
+        location="f:1",
+        description=None,
     )
 
 
 def _mock_scenario(name: str = "S1") -> SimpleNamespace:
     return SimpleNamespace(
-        name=name, tags=[], location="f:5",
+        name=name,
+        tags=[],
+        location="f:5",
         feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
+        is_outline=False,
+        rule=None,
+        description=None,
     )
 
 
@@ -79,9 +86,15 @@ def _mock_step(
     duration: float = 0.01,
 ) -> SimpleNamespace:
     return SimpleNamespace(
-        keyword="Given", name=name, status=status,
-        location="f:10", duration=duration, text=None,
-        error=None, exception=None, error_message=None,
+        keyword="Given",
+        name=name,
+        status=status,
+        location="f:10",
+        duration=duration,
+        text=None,
+        error=None,
+        exception=None,
+        error_message=None,
     )
 
 
@@ -105,10 +118,12 @@ def test_init_with_no_config() -> None:
 
 def test_init_with_config_resolves_options() -> None:
     """Formatter resolves bmfr.* keys from config.userdata."""
-    config = _mock_config({
-        "bmfr.title": "Custom Title",
-        "bmfr.only_failed": "true",
-    })
+    config = _mock_config(
+        {
+            "bmfr.title": "Custom Title",
+            "bmfr.only_failed": "true",
+        }
+    )
     fmt = TestFormatter(config=config)
     assert fmt._options.title == "Custom Title"
     assert fmt._options.only_failed is True
@@ -116,19 +131,23 @@ def test_init_with_config_resolves_options() -> None:
 
 def test_init_format_specific_override() -> None:
     """bmfr.pdf.logo takes precedence over bmfr.logo for PDF formatter."""
-    config = _mock_config({
-        "bmfr.logo": "global_logo.png",
-        "bmfr.pdf.logo": "pdf_logo.png",
-    })
+    config = _mock_config(
+        {
+            "bmfr.logo": "global_logo.png",
+            "bmfr.pdf.logo": "pdf_logo.png",
+        }
+    )
     fmt = TestFormatter(config=config)
     assert fmt._options.logo == "pdf_logo.png"
 
 
 def test_init_format_specific_falls_back_to_global() -> None:
     """When no format-specific key, falls back to bmfr.<key>."""
-    config = _mock_config({
-        "bmfr.logo": "global_logo.png",
-    })
+    config = _mock_config(
+        {
+            "bmfr.logo": "global_logo.png",
+        }
+    )
     fmt = TestFormatter(config=config)
     assert fmt._options.logo == "global_logo.png"
 
@@ -173,13 +192,12 @@ def test_feature_starts_collector_feature() -> None:
     assert fmt._collector._current_feature.name == "MyFeature"
 
 
-def test_background_starts_collector_background() -> None:
-    """background() starts a background in the collector."""
+def test_background_records_pending_name() -> None:
+    """background() records the declared name for the next scenario."""
     fmt = TestFormatter()
     fmt.feature(_mock_feature())
     fmt.background(SimpleNamespace(name="Background", location="f:3"))
-    assert fmt._collector._current_background is not None
-    assert fmt._collector._in_background is True
+    assert fmt._collector._bg_name_pending == "Background"
 
 
 def test_rule_is_noop() -> None:
@@ -223,11 +241,16 @@ def test_result_finalizes_step() -> None:
 def test_background_steps_are_attached_to_feature_and_scenarios() -> None:
     """Background steps are captured and attached to the feature/scenarios."""
     fmt = TestFormatter()
+    bg_decl = _mock_background(name="BG")
+    bg_steps = [_mock_step(name="bg step")]
     fmt.feature(_mock_feature(name="F1"))
-    fmt.background(_mock_background(name="BG"))
+    fmt.background(bg_decl)
+    scenario = _mock_scenario(name="S1")
+    scenario.background_steps = bg_steps
+    scenario.background = bg_decl
+    fmt.scenario(scenario)
     fmt.step(_mock_step(name="bg step"))
     fmt.result(_mock_step(name="bg step", status="passed"))
-    fmt.scenario(_mock_scenario(name="S1"))
     fmt.step(_mock_step(name="sc step"))
     fmt.result(_mock_step(name="sc step", status="passed"))
     fmt.eof()
@@ -237,11 +260,12 @@ def test_background_steps_are_attached_to_feature_and_scenarios() -> None:
     assert len(run.features) == 1
     feature = run.features[0]
     assert feature.background is not None
+    assert feature.background.name == "BG"
     assert [s.name for s in feature.background.steps] == ["bg step"]
     assert len(feature.scenarios) == 1
-    scenario = feature.scenarios[0]
-    assert [s.name for s in scenario.steps] == ["sc step"]
-    assert scenario.background is feature.background
+    scn = feature.scenarios[0]
+    assert [s.name for s in scn.steps] == ["sc step"]
+    assert scn.background is feature.background
 
 
 def test_eof_finalizes_scenario_and_feature() -> None:
@@ -446,10 +470,12 @@ def test_orphan_attachments_discarded_when_no_scenario() -> None:
 
 def test_full_lifecycle() -> None:
     """Full formatter lifecycle: feature → scenario → step → result → eof → close."""
-    config = _mock_config({
-        "bmfr.title": "Integration Report",
-        "bmfr.pdf.title": "PDF Integration Report",
-    })
+    config = _mock_config(
+        {
+            "bmfr.title": "Integration Report",
+            "bmfr.pdf.title": "PDF Integration Report",
+        }
+    )
     fmt = TestFormatter(config=config)
     assert fmt._options.title == "PDF Integration Report"
 
@@ -489,6 +515,7 @@ def test_write_report_not_implemented_in_base() -> None:
 
 def test_stream_opener_stored_and_open_callable() -> None:
     """StreamOpener with open() method is stored correctly."""
+
     class FakeOpener:
         def open(self) -> str:
             return "stream"

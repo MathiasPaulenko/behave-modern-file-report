@@ -152,10 +152,12 @@ def test_resolves_pdf_specific_options() -> None:
 
 
 def test_pdf_specific_overrides_global() -> None:
-    config = _mock_config({
-        "bmfr.title": "Global Title",
-        "bmfr.pdf.title": "PDF Title",
-    })
+    config = _mock_config(
+        {
+            "bmfr.title": "Global Title",
+            "bmfr.pdf.title": "PDF Title",
+        }
+    )
     fmt = PDFFormatter(config=config)
     assert fmt._options.title == "PDF Title"
 
@@ -173,10 +175,12 @@ def test_resolves_pdf_engine_option() -> None:
 
 
 def test_pdf_engine_specific_overrides_global() -> None:
-    config = _mock_config({
-        "bmfr.pdf_engine": "weasyprint",
-        "bmfr.pdf.pdf_engine": "reportlab",
-    })
+    config = _mock_config(
+        {
+            "bmfr.pdf_engine": "weasyprint",
+            "bmfr.pdf.pdf_engine": "reportlab",
+        }
+    )
     fmt = PDFFormatter(config=config)
     assert fmt._options.pdf_engine == "reportlab"
 
@@ -278,24 +282,51 @@ def test_close_writes_report(tmp_path: Path) -> None:
     path = tmp_path / "report.pdf"
     opener = MockStreamOpener(str(path))
     fmt = PDFFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="F1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="S1", tags=[], location="f:5",
-        feature=SimpleNamespace(name="F1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="step", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="step", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="F1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="S1",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="F1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     assert path.exists()
@@ -338,25 +369,51 @@ def test_structure_run_feature_scenario_step(tmp_path: Path) -> None:
     path = tmp_path / "report.pdf"
     opener = MockStreamOpener(str(path))
     fmt = PDFFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="Login", tags=["security"], location="features/login.feature:1",
-        description="User authentication flows.",
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="Successful login", tags=["smoke"], location="features/login.feature:5",
-        feature=SimpleNamespace(name="Login", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="user on login page", status="passed",
-        location="features/login.feature:10", duration=0.05, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="user on login page", status="passed",
-        location="features/login.feature:10", duration=0.05, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="Login",
+            tags=["security"],
+            location="features/login.feature:1",
+            description="User authentication flows.",
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="Successful login",
+            tags=["smoke"],
+            location="features/login.feature:5",
+            feature=SimpleNamespace(name="Login", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="user on login page",
+            status="passed",
+            location="features/login.feature:10",
+            duration=0.05,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="user on login page",
+            status="passed",
+            location="features/login.feature:10",
+            duration=0.05,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     assert path.exists()
@@ -370,27 +427,52 @@ def test_structure_failed_step_with_error(tmp_path: Path) -> None:
     path = tmp_path / "report.pdf"
     opener = MockStreamOpener(str(path))
     fmt = PDFFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="Checkout", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="Payment fails", tags=[], location="f:5",
-        feature=SimpleNamespace(name="Checkout", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="Checkout",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="Payment fails",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="Checkout", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
     try:
         raise AssertionError("insufficient funds") from None
     except AssertionError as exc:
         failed_step = SimpleNamespace(
-            keyword="Then ", name="payment succeeds", status="failed",
-            location="f:15", duration=0.01, text=None,
-            error=exc, exception=None, error_message=None,
+            keyword="Then ",
+            name="payment succeeds",
+            status="failed",
+            location="f:15",
+            duration=0.01,
+            text=None,
+            error=exc,
+            exception=None,
+            error_message=None,
         )
-    fmt.step(SimpleNamespace(
-        keyword="Then ", name="payment succeeds", status="failed",
-        location="f:15", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.step(
+        SimpleNamespace(
+            keyword="Then ",
+            name="payment succeeds",
+            status="failed",
+            location="f:15",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.result(failed_step)
     fmt.eof()
     fmt.close()
@@ -405,24 +487,51 @@ def test_structure_multiple_features(tmp_path: Path) -> None:
     opener = MockStreamOpener(str(path))
     fmt = PDFFormatter(stream_opener=opener)
     for feat_name in ["Auth", "Payment", "Profile"]:
-        fmt.feature(SimpleNamespace(
-            name=feat_name, tags=[], location="f:1", description=None,
-        ))
-        fmt.scenario(SimpleNamespace(
-            name=f"{feat_name} scenario", tags=[], location="f:5",
-            feature=SimpleNamespace(name=feat_name, tags=[], location=""),
-            is_outline=False, rule=None, description=None,
-        ))
-        fmt.step(SimpleNamespace(
-            keyword="Given ", name="step", status="passed",
-            location="f:10", duration=0.01, text=None,
-            error=None, exception=None, error_message=None,
-        ))
-        fmt.result(SimpleNamespace(
-            keyword="Given ", name="step", status="passed",
-            location="f:10", duration=0.01, text=None,
-            error=None, exception=None, error_message=None,
-        ))
+        fmt.feature(
+            SimpleNamespace(
+                name=feat_name,
+                tags=[],
+                location="f:1",
+                description=None,
+            )
+        )
+        fmt.scenario(
+            SimpleNamespace(
+                name=f"{feat_name} scenario",
+                tags=[],
+                location="f:5",
+                feature=SimpleNamespace(name=feat_name, tags=[], location=""),
+                is_outline=False,
+                rule=None,
+                description=None,
+            )
+        )
+        fmt.step(
+            SimpleNamespace(
+                keyword="Given ",
+                name="step",
+                status="passed",
+                location="f:10",
+                duration=0.01,
+                text=None,
+                error=None,
+                exception=None,
+                error_message=None,
+            )
+        )
+        fmt.result(
+            SimpleNamespace(
+                keyword="Given ",
+                name="step",
+                status="passed",
+                location="f:10",
+                duration=0.01,
+                text=None,
+                error=None,
+                exception=None,
+                error_message=None,
+            )
+        )
     fmt.eof()
     fmt.close()
     assert path.exists()
@@ -435,24 +544,51 @@ def test_structure_skipped_scenario(tmp_path: Path) -> None:
     path = tmp_path / "report.pdf"
     opener = MockStreamOpener(str(path))
     fmt = PDFFormatter(stream_opener=opener)
-    fmt.feature(SimpleNamespace(
-        name="Feature1", tags=[], location="f:1", description=None,
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="Skipped scenario", tags=[], location="f:5",
-        feature=SimpleNamespace(name="Feature1", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="step", status="skipped",
-        location="f:10", duration=0.0, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="step", status="skipped",
-        location="f:10", duration=0.0, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="Feature1",
+            tags=[],
+            location="f:1",
+            description=None,
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="Skipped scenario",
+            tags=[],
+            location="f:5",
+            feature=SimpleNamespace(name="Feature1", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="skipped",
+            location="f:10",
+            duration=0.0,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="step",
+            status="skipped",
+            location="f:10",
+            duration=0.0,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     assert path.exists()
@@ -472,25 +608,51 @@ def test_full_lifecycle_with_options(tmp_path: Path) -> None:
     fmt = PDFFormatter(stream_opener=opener, config=config)
     assert fmt._options.title == "Custom PDF Report"
 
-    fmt.feature(SimpleNamespace(
-        name="Auth", tags=["security"], location="f:1",
-        description="Auth flows.",
-    ))
-    fmt.scenario(SimpleNamespace(
-        name="Login ok", tags=["smoke"], location="f:5",
-        feature=SimpleNamespace(name="Auth", tags=[], location=""),
-        is_outline=False, rule=None, description=None,
-    ))
-    fmt.step(SimpleNamespace(
-        keyword="Given ", name="user exists", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
-    fmt.result(SimpleNamespace(
-        keyword="Given ", name="user exists", status="passed",
-        location="f:10", duration=0.01, text=None,
-        error=None, exception=None, error_message=None,
-    ))
+    fmt.feature(
+        SimpleNamespace(
+            name="Auth",
+            tags=["security"],
+            location="f:1",
+            description="Auth flows.",
+        )
+    )
+    fmt.scenario(
+        SimpleNamespace(
+            name="Login ok",
+            tags=["smoke"],
+            location="f:5",
+            feature=SimpleNamespace(name="Auth", tags=[], location=""),
+            is_outline=False,
+            rule=None,
+            description=None,
+        )
+    )
+    fmt.step(
+        SimpleNamespace(
+            keyword="Given ",
+            name="user exists",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
+    fmt.result(
+        SimpleNamespace(
+            keyword="Given ",
+            name="user exists",
+            status="passed",
+            location="f:10",
+            duration=0.01,
+            text=None,
+            error=None,
+            exception=None,
+            error_message=None,
+        )
+    )
     fmt.eof()
     fmt.close()
     assert path.exists()

@@ -31,6 +31,9 @@ def _mock_scenario(
     is_outline: bool = False,
     rule: SimpleNamespace | None = None,
     description: str | list[str] | None = None,
+    background_steps: list[SimpleNamespace] | None = None,
+    background: SimpleNamespace | None = None,
+    parent: SimpleNamespace | None = None,
 ) -> SimpleNamespace:
     """Create a mock Behave scenario."""
     return SimpleNamespace(
@@ -41,6 +44,9 @@ def _mock_scenario(
         is_outline=is_outline,
         rule=rule,
         description=description,
+        background_steps=background_steps or [],
+        background=background,
+        parent=parent,
     )
 
 
@@ -315,44 +321,13 @@ def test_end_step_without_scenario_or_background_is_noop() -> None:
     assert len(col._step_queue) == 1  # step remains queued, not finalized
 
 
-def test_end_step_in_background_without_background_object_falls_to_scenario() -> None:
-    """end_step falls to scenario when in_background but no background object."""
+def test_end_step_without_scenario_stays_queued() -> None:
+    """end_step with a queued step but no active scenario does not finalize it."""
     col = Collector()
     col.start_feature(_mock_feature(name="F1"))
-    col.start_scenario(_mock_scenario(name="S1"))
-    col._in_background = True
-    col._current_background = None
-    col.start_step(_mock_step(name="step 1"))
-    col.end_step(_mock_step(name="step 1", status="passed"))
-    assert col._current_scenario is not None
-    assert len(col._current_scenario.steps) == 1
-    col._in_background = False
-
-
-def test_end_step_in_background_no_background_no_scenario_discards_step() -> None:
-    """end_step in background mode with no background and no scenario does not finalize."""
-    col = Collector()
-    col.start_feature(_mock_feature(name="F1"))
-    col._in_background = True
-    col._current_background = None
     col.start_step(_mock_step(name="orphan step"))
     col.end_step(_mock_step(name="orphan step", status="passed"))
     assert len(col._step_queue) == 1  # step remains queued
-    col._in_background = False
-
-
-def test_end_step_in_background_with_background_no_scenario() -> None:
-    """end_step in background mode with background but no scenario appends to background."""
-    col = Collector()
-    col.start_feature(_mock_feature(name="F1"))
-    col.start_background(_mock_background())
-    col._in_background = True
-    col.start_step(_mock_step(name="bg step"))
-    col.end_step(_mock_step(name="bg step", status="passed"))
-    assert col._current_background is not None
-    assert len(col._current_background.steps) == 1
-    assert col._current_background.steps[0].status == "passed"
-    col._in_background = False
 
 
 def test_end_step_calculates_duration_from_monotonic() -> None:
@@ -361,10 +336,16 @@ def test_end_step_calculates_duration_from_monotonic() -> None:
     col.start_feature(_mock_feature(name="F1"))
     col.start_scenario(_mock_scenario(name="S1"))
     col.start_step(_mock_step(name="step 1"))
-    col.end_step(SimpleNamespace(
-        keyword="Given", name="step 1", status="passed",
-        location="", duration=None, text=None,
-    ))
+    col.end_step(
+        SimpleNamespace(
+            keyword="Given",
+            name="step 1",
+            status="passed",
+            location="",
+            duration=None,
+            text=None,
+        )
+    )
     assert col._current_scenario is not None
     assert col._current_scenario.steps[0].duration == 0.0
 
@@ -396,10 +377,16 @@ def test_end_step_normalizes_status() -> None:
     col.start_feature(_mock_feature(name="F1"))
     col.start_scenario(_mock_scenario(name="S1"))
     col.start_step(_mock_step(name="step 1"))
-    col.end_step(SimpleNamespace(
-        keyword="Given", name="step 1", status="passed",
-        location="", duration=0.01, text=None,
-    ))
+    col.end_step(
+        SimpleNamespace(
+            keyword="Given",
+            name="step 1",
+            status="passed",
+            location="",
+            duration=0.01,
+            text=None,
+        )
+    )
     assert col._current_scenario is not None
     assert col._current_scenario.steps[0].status == "passed"
 
@@ -410,10 +397,16 @@ def test_end_step_normalizes_non_string_status() -> None:
     col.start_feature(_mock_feature(name="F1"))
     col.start_scenario(_mock_scenario(name="S1"))
     col.start_step(_mock_step(name="step 1"))
-    col.end_step(SimpleNamespace(
-        keyword="Given", name="step 1", status=42,
-        location="", duration=0.01, text=None,
-    ))
+    col.end_step(
+        SimpleNamespace(
+            keyword="Given",
+            name="step 1",
+            status=42,
+            location="",
+            duration=0.01,
+            text=None,
+        )
+    )
     assert col._current_scenario is not None
     assert col._current_scenario.steps[0].status == "untested"
 
@@ -916,27 +909,23 @@ def _mock_background(name: str = "Background") -> SimpleNamespace:
     return SimpleNamespace(name=name, location="features/test.feature:3")
 
 
-def test_start_background_creates_tracker() -> None:
-    """start_background creates a current background tracker."""
+def test_start_background_records_pending_name() -> None:
+    """start_background records the declared name as fallback."""
     col = Collector()
     col.start_feature(_mock_feature(name="F1"))
-    col.start_background(_mock_background())
-    assert col._current_background is not None
-    assert col._current_background.name == "Background"
-    assert col._in_background is True
+    col.start_background(_mock_background(name="Common setup"))
+    assert col._bg_name_pending == "Common setup"
 
 
-def test_end_background_attaches_to_feature() -> None:
-    """end_background attaches the background to the current feature."""
+def test_end_background_clears_pending_name() -> None:
+    """end_background clears the pending name without attaching anything."""
     col = Collector()
     col.start_feature(_mock_feature(name="F1"))
     col.start_background(_mock_background(name="Common setup"))
     col.end_background()
-    assert col._current_background is None
-    assert col._in_background is False
+    assert col._bg_name_pending == ""
     assert col._current_feature is not None
-    assert col._current_feature.background is not None
-    assert col._current_feature.background.name == "Common setup"
+    assert col._current_feature.background is None
 
 
 def test_end_background_without_start_is_noop() -> None:
@@ -948,53 +937,86 @@ def test_end_background_without_start_is_noop() -> None:
     assert col._current_feature.background is None
 
 
-def test_background_steps_routed_to_background() -> None:
-    """Steps during background mode are appended to the background, not the scenario."""
+def test_background_steps_routed_to_scenario_background() -> None:
+    """The first N steps announced after scenario() go to scenario.background."""
     col = Collector()
+    bg_decl = _mock_background(name="Common setup")
+    bg_steps = [_mock_step(keyword="Given", name="bg step 1")]
     col.start_feature(_mock_feature(name="F1"))
-    col.start_background(_mock_background())
-    col.start_step(_mock_step(keyword="Given", name="bg step 1"))
+    col.start_background(bg_decl)
+    col.start_scenario(
+        _mock_scenario(
+            name="S1",
+            background_steps=bg_steps,
+            background=bg_decl,
+        )
+    )
+    col.start_step(bg_steps[0])
     col.end_step(_mock_step(keyword="Given", name="bg step 1", status="passed"))
-    col.end_background()
+    col.start_step(_mock_step(keyword="When", name="scn step"))
+    col.end_step(_mock_step(keyword="When", name="scn step", status="passed"))
+    col.end_scenario()
+    assert col._current_feature is not None
+    scn = col._current_feature.scenarios[0]
+    assert scn.background is not None
+    assert scn.background.name == "Common setup"
+    assert [s.name for s in scn.background.steps] == ["bg step 1"]
+    assert [s.name for s in scn.steps] == ["scn step"]
+
+
+def test_background_attached_to_feature_from_first_scenario() -> None:
+    """feature.background is populated from the first scenario's execution."""
+    col = Collector()
+    bg_decl = _mock_background()
+    bg_steps = [_mock_step(name="bg step")]
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_background(bg_decl)
+    col.start_scenario(
+        _mock_scenario(
+            name="S1",
+            background_steps=bg_steps,
+            background=bg_decl,
+        )
+    )
+    col.start_step(bg_steps[0])
+    col.end_step(_mock_step(name="bg step", status="passed"))
+    col.end_scenario()
     assert col._current_feature is not None
     assert col._current_feature.background is not None
+    assert col._current_feature.background.name == "Background"
     assert len(col._current_feature.background.steps) == 1
-    assert col._current_feature.background.steps[0].name == "bg step 1"
 
 
-def test_background_attached_to_scenario() -> None:
-    """Background is attached to scenarios when they start."""
+def test_background_fallback_name_from_background_event() -> None:
+    """Pending name from background() is used when the scenario has no bg object."""
     col = Collector()
+    bg_steps = [_mock_step(name="bg step")]
     col.start_feature(_mock_feature(name="F1"))
-    col.start_background(_mock_background())
-    col.start_step(_mock_step(keyword="Given", name="bg step"))
-    col.end_step(_mock_step(keyword="Given", name="bg step", status="passed"))
-    col.end_background()
-    col.start_scenario(_mock_scenario(name="S1"))
-    assert col._current_scenario is not None
-    assert col._current_scenario.background is not None
-    assert col._current_scenario.background.name == "Background"
-    assert len(col._current_scenario.background.steps) == 1
-
-
-def test_background_no_feature_is_noop() -> None:
-    """end_background without a feature is a no-op."""
-    col = Collector()
-    col.start_background(_mock_background())
-    col.end_background()
-    assert col._current_background is None
-    assert col._in_background is False
+    col.start_background(_mock_background(name="Declared bg"))
+    col.start_scenario(_mock_scenario(name="S1", background_steps=bg_steps))
+    col.start_step(bg_steps[0])
+    col.end_step(_mock_step(name="bg step", status="passed"))
+    col.end_scenario()
+    assert col._current_feature is not None
+    scn = col._current_feature.scenarios[0]
+    assert scn.background is not None
+    assert scn.background.name == "Declared bg"
 
 
 def test_background_failed_step_derives_scenario_failed() -> None:
     """A failed background step causes the scenario to derive failed status."""
     col = Collector()
+    bg_steps = [_mock_step(name="bg step")]
     col.start_feature(_mock_feature(name="F1"))
-    col.start_background(_mock_background())
-    col.start_step(_mock_step(keyword="Given", name="bg step"))
-    col.end_step(_mock_step(keyword="Given", name="bg step", status="failed"))
-    col.end_background()
-    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_scenario(
+        _mock_scenario(
+            name="S1",
+            background_steps=bg_steps,
+            background=_mock_background(),
+        )
+    )
+    col.start_step(bg_steps[0])
+    col.end_step(_mock_step(name="bg step", status="failed"))
     col.start_step(_mock_step(keyword="When", name="scn step"))
     col.end_step(_mock_step(keyword="When", name="scn step", status="passed"))
     col.end_scenario()
@@ -1003,15 +1025,20 @@ def test_background_failed_step_derives_scenario_failed() -> None:
     assert scn.status == "failed"
 
 
-def test_background_only_scenario_is_undefined_if_no_scenario_steps() -> None:
-    """A scenario with only background steps and no scenario steps derives from all."""
+def test_background_only_scenario_derives_from_bg_steps() -> None:
+    """A scenario with only background steps derives status from them."""
     col = Collector()
+    bg_steps = [_mock_step(name="bg step")]
     col.start_feature(_mock_feature(name="F1"))
-    col.start_background(_mock_background())
-    col.start_step(_mock_step(keyword="Given", name="bg step"))
-    col.end_step(_mock_step(keyword="Given", name="bg step", status="passed"))
-    col.end_background()
-    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_scenario(
+        _mock_scenario(
+            name="S1",
+            background_steps=bg_steps,
+            background=_mock_background(),
+        )
+    )
+    col.start_step(bg_steps[0])
+    col.end_step(_mock_step(name="bg step", status="passed"))
     col.end_scenario()
     assert col._current_feature is not None
     scn = col._current_feature.scenarios[0]
@@ -1019,23 +1046,58 @@ def test_background_only_scenario_is_undefined_if_no_scenario_steps() -> None:
 
 
 def test_background_default_name() -> None:
-    """start_background with empty name defaults to 'Background'."""
+    """A background without a name defaults to 'Background'."""
     col = Collector()
+    bg_steps = [_mock_step(name="bg step")]
     col.start_feature(_mock_feature(name="F1"))
-    col.start_background(SimpleNamespace(name="", location=""))
-    assert col._current_background is not None
-    assert col._current_background.name == "Background"
+    col.start_scenario(_mock_scenario(name="S1", background_steps=bg_steps))
+    col.start_step(bg_steps[0])
+    col.end_step(_mock_step(name="bg step", status="passed"))
+    col.end_scenario()
+    assert col._current_feature is not None
+    scn = col._current_feature.scenarios[0]
+    assert scn.background is not None
+    assert scn.background.name == "Background"
+
+
+def test_background_skipped_steps_stay_in_background() -> None:
+    """Queued background steps drained at end_scenario land in the background."""
+    col = Collector()
+    bg_steps = [_mock_step(name="bg step")]
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(
+        _mock_scenario(
+            name="S1",
+            background_steps=bg_steps,
+            background=_mock_background(),
+        )
+    )
+    col.start_step(bg_steps[0])
+    col.start_step(_mock_step(name="scn step"))
+    col.end_scenario()
+    assert col._current_feature is not None
+    scn = col._current_feature.scenarios[0]
+    assert scn.background is not None
+    assert scn.background.steps[0].status == "skipped"
+    assert scn.steps[0].status == "skipped"
 
 
 def test_full_lifecycle_with_background() -> None:
     """Full lifecycle with background: feature → background → scenario → steps → end."""
     col = Collector()
+    bg_decl = _mock_background(name="Common setup")
+    bg_steps = [_mock_step(keyword="Given", name="user is logged in")]
     col.start_feature(_mock_feature(name="Login", tags=["auth"]))
-    col.start_background(_mock_background(name="Common setup"))
-    col.start_step(_mock_step(keyword="Given", name="user is logged in"))
+    col.start_background(bg_decl)
+    col.start_scenario(
+        _mock_scenario(
+            name="Logout",
+            background_steps=bg_steps,
+            background=bg_decl,
+        )
+    )
+    col.start_step(bg_steps[0])
     col.end_step(_mock_step(keyword="Given", name="user is logged in", status="passed"))
-    col.end_background()
-    col.start_scenario(_mock_scenario(name="Logout"))
     col.start_step(_mock_step(keyword="When", name="user clicks logout"))
     col.end_step(_mock_step(keyword="When", name="user clicks logout", status="passed"))
     col.end_scenario()
@@ -1050,6 +1112,55 @@ def test_full_lifecycle_with_background() -> None:
     assert len(scn.background.steps) == 1
     assert len(scn.steps) == 1
     assert scn.status == "passed"
+
+
+def test_hook_failed_scenario_is_failed() -> None:
+    """A scenario whose before_scenario hook failed is reported as failed."""
+    col = Collector()
+    behave_scn = _mock_scenario(name="S1")
+    behave_scn.hook_failed = True
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(behave_scn)
+    col.start_step(_mock_step(name="s1"))
+    col.end_step(_mock_step(name="s1", status="skipped"))
+    col.end_scenario()
+    assert col._current_feature is not None
+    scn = col._current_feature.scenarios[0]
+    assert scn.status == "failed"
+
+
+def test_hook_failed_scenario_extracts_hook_error() -> None:
+    """Hook failures expose the exception stored by store_exception_context."""
+    exc = RuntimeError("before_scenario exploded")
+    behave_scn = _mock_scenario(name="S1")
+    behave_scn.hook_failed = True
+    behave_scn.error = None
+    behave_scn.exception = exc
+    behave_scn.error_message = "HOOK-ERROR in before_scenario: RuntimeError"
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(behave_scn)
+    col.end_scenario()
+    assert col._current_feature is not None
+    scn = col._current_feature.scenarios[0]
+    assert scn.status == "failed"
+    assert scn.error is not None
+    assert scn.error.exception_type == "RuntimeError"
+
+
+def test_hook_failed_feature_is_failed() -> None:
+    """A feature whose hook failed is reported as failed."""
+    col = Collector()
+    behave_feat = _mock_feature(name="F1")
+    behave_feat.hook_failed = True
+    col.start_feature(behave_feat)
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="s1"))
+    col.end_step(_mock_step(name="s1", status="skipped"))
+    col.end_scenario()
+    col.end_feature()
+    run = col.finalize()
+    assert run.features[0].status == "failed"
 
 
 # ---------------------------------------------------------------------------
@@ -1079,16 +1190,23 @@ def test_rule_name_empty_when_no_rule() -> None:
 def test_rule_with_background_and_scenario() -> None:
     """A rule with background and scenario steps works end-to-end."""
     col = Collector()
+    bg_decl = _mock_background(name="Rule bg")
+    bg_steps = [_mock_step(keyword="Given", name="rule bg step")]
+    rule = SimpleNamespace(name="Auth rule", type="rule")
     col.start_feature(_mock_feature(name="F1"))
-    col.start_background(_mock_background(name="Rule bg"))
-    col.start_step(_mock_step(keyword="Given", name="rule bg step"))
-    col.end_step(_mock_step(keyword="Given", name="rule bg step", status="passed"))
-    col.end_background()
-    rule = SimpleNamespace(name="Auth rule")
-    col.start_scenario(_mock_scenario(name="Login", rule=rule))
+    col.start_background(bg_decl)
+    col.start_scenario(
+        _mock_scenario(
+            name="Login",
+            rule=rule,
+            background_steps=bg_steps,
+            background=bg_decl,
+        )
+    )
     assert col._current_scenario is not None
     assert col._current_scenario.rule_name == "Auth rule"
-    assert col._current_scenario.background is not None
+    col.start_step(bg_steps[0])
+    col.end_step(_mock_step(keyword="Given", name="rule bg step", status="passed"))
     col.start_step(_mock_step(keyword="When", name="login"))
     col.end_step(_mock_step(keyword="When", name="login", status="passed"))
     col.end_scenario()
@@ -1096,7 +1214,39 @@ def test_rule_with_background_and_scenario() -> None:
     run = col.finalize()
     scn = run.features[0].scenarios[0]
     assert scn.rule_name == "Auth rule"
+    assert scn.background is not None
+    assert scn.background.name == "Rule bg"
+    assert len(scn.background.steps) == 1
     assert scn.status == "passed"
+
+
+def test_rule_detected_via_parent_chain() -> None:
+    """rule_name is derived by walking up scenario.parent to type == 'rule'."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    rule = SimpleNamespace(name="Booking rules", type="rule", parent=None)
+    scenario = _mock_scenario(name="S1", rule=None, parent=rule)
+    col.start_scenario(scenario)
+    assert col._current_scenario is not None
+    assert col._current_scenario.rule_name == "Booking rules"
+
+
+def test_rule_detected_through_outline_parent() -> None:
+    """An outline example inside a Rule resolves the rule via parent.parent."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    rule = SimpleNamespace(name="Booking rules", type="rule", parent=None)
+    outline = SimpleNamespace(
+        name="prices",
+        type="scenario_outline",
+        parent=rule,
+    )
+    scenario = _mock_scenario(name="prices -- @1.1", rule=None, parent=outline)
+    col.start_scenario(scenario)
+    assert col._current_scenario is not None
+    assert col._current_scenario.rule_name == "Booking rules"
+    assert col._current_scenario.is_outline is True
+    assert col._current_scenario.outline_name == "prices"
 
 
 # ---------------------------------------------------------------------------
@@ -1122,6 +1272,25 @@ def test_scenario_outline_not_outline() -> None:
     assert col._current_scenario is not None
     assert col._current_scenario.is_outline is False
     assert col._current_scenario.outline_name == ""
+
+
+def test_scenario_outline_detected_via_parent() -> None:
+    """Outline examples are detected via parent.type == 'scenario_outline'."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    outline = SimpleNamespace(
+        name="Login with <user>",
+        type="scenario_outline",
+        parent=None,
+    )
+    scenario = _mock_scenario(
+        name="Login with user -- @1.1",
+        parent=outline,
+    )
+    col.start_scenario(scenario)
+    assert col._current_scenario is not None
+    assert col._current_scenario.is_outline is True
+    assert col._current_scenario.outline_name == "Login with <user>"
 
 
 def test_scenario_outline_full_lifecycle() -> None:
@@ -1160,14 +1329,17 @@ def test_integration_mixed_status_run(
     """Full run with passed, failed, skipped, and undefined statuses."""
     col = Collector()
 
-    # Feature 1: Login — background + scenario with passed/failed/skipped
+    # Feature 1: Login — background + scenario with passed/failed/skipped.
+    # Behave announces background steps as the leading steps of the scenario.
+    bg_steps = [behave_passed_step]
+    behave_scenario.background_steps = bg_steps
+    behave_scenario.background = behave_background
     col.start_feature(behave_feature)
     col.start_background(behave_background)
-    col.start_step(behave_passed_step)
-    col.end_step(behave_passed_step)
-    col.end_background()
 
     col.start_scenario(behave_scenario)
+    col.start_step(behave_passed_step)
+    col.end_step(behave_passed_step)
     col.start_step(behave_passed_step)
     col.end_step(behave_passed_step)
     col.start_step(behave_failed_step)
@@ -1268,16 +1440,15 @@ def test_integration_outline_with_background(
 ) -> None:
     """A scenario outline with background works end-to-end."""
     col = Collector()
+    bg_steps = [behave_passed_step]
+    behave_outline_scenario.background_steps = bg_steps
+    behave_outline_scenario.background = behave_background
     col.start_feature(behave_feature)
     col.start_background(behave_background)
-    col.start_step(behave_passed_step)
-    col.end_step(behave_passed_step)
-    col.end_background()
     col.start_scenario(behave_outline_scenario)
     assert col._current_scenario is not None
     assert col._current_scenario.is_outline is True
     assert col._current_scenario.outline_name == "Login with <user>"
-    assert col._current_scenario.background is not None
     col.start_step(behave_passed_step)
     col.end_step(behave_passed_step)
     col.end_scenario()
@@ -1301,8 +1472,13 @@ def test_integration_multiple_features_mixed_statuses(
     # Feature 1: all passed
     f1 = SimpleNamespace(name="F1", tags=[], location="f1:1", description=None)
     s1 = SimpleNamespace(
-        name="S1", tags=[], location="f1:5",
-        feature=f1, is_outline=False, rule=None, description=None,
+        name="S1",
+        tags=[],
+        location="f1:5",
+        feature=f1,
+        is_outline=False,
+        rule=None,
+        description=None,
     )
     col.start_feature(f1)
     col.start_scenario(s1)
@@ -1314,8 +1490,13 @@ def test_integration_multiple_features_mixed_statuses(
     # Feature 2: failed
     f2 = SimpleNamespace(name="F2", tags=[], location="f2:1", description=None)
     s2 = SimpleNamespace(
-        name="S2", tags=[], location="f2:5",
-        feature=f2, is_outline=False, rule=None, description=None,
+        name="S2",
+        tags=[],
+        location="f2:5",
+        feature=f2,
+        is_outline=False,
+        rule=None,
+        description=None,
     )
     col.start_feature(f2)
     col.start_scenario(s2)
@@ -1329,8 +1510,13 @@ def test_integration_multiple_features_mixed_statuses(
     # Feature 3: all skipped
     f3 = SimpleNamespace(name="F3", tags=[], location="f3:1", description=None)
     s3 = SimpleNamespace(
-        name="S3", tags=[], location="f3:5",
-        feature=f3, is_outline=False, rule=None, description=None,
+        name="S3",
+        tags=[],
+        location="f3:5",
+        feature=f3,
+        is_outline=False,
+        rule=None,
+        description=None,
     )
     col.start_feature(f3)
     col.start_scenario(s3)
