@@ -175,5 +175,4 @@ jobs:
           tag_name: ${{ needs.detect.outputs.tag }}
           name: ${{ needs.detect.outputs.tag }}
           generate_release_notes: true
-          overwrite_files: true
           files: dist/*

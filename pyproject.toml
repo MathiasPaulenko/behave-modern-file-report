@@ -70,7 +70,6 @@ path = "behave_modern_file_report/__init__.py"
 include = [
     "/behave_modern_file_report",
     "/tests",
-    "/ref",
     "/README.md",
     "/CHANGELOG.md",
     "/LICENSE",

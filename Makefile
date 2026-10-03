@@ -13,6 +13,7 @@ test:
 
 lint:
 	ruff check .
+	ruff format --check .
 
 typecheck:
 	mypy behave_modern_file_report tests
@@ -36,7 +37,7 @@ clean:
 	find . -type f -name "*.pyc" -delete
 
 report:
-	cd examples/behave_project && \
-	python -m behave -f behave-modern-txt -o report.txt && \
-	python -m behave -f behave-modern-docx -o report.docx && \
-	python -m behave -f behave-modern-pdf -o report.pdf
+	cd examples/behave_project && python -m behave \
+		-f behave-modern-txt -o report.txt \
+		-f behave-modern-docx -o report.docx \
+		-f behave-modern-pdf -o report.pdf || exit 0
