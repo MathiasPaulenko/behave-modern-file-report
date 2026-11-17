@@ -45,7 +45,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpango1.0-dev libgdk-pixbuf2.0-dev libffi-dev shared-mime-info
+          sudo apt-get install -y libpango1.0-dev libgdk-pixbuf-2.0-dev libffi-dev shared-mime-info
       - name: Install package
         run: pip install -e ".[dev]"
       - name: Run tests
