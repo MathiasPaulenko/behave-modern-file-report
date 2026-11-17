@@ -7,7 +7,8 @@ name = "behave-modern-file-report"
 dynamic = ["version"]
 description = "Document-style report formatters for Behave BDD (PDF, DOCX, TXT)."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [
     { name = "Mathias Paulenko", email = "mathias@paulenko.com" },
@@ -16,7 +17,6 @@ keywords = ["behave", "bdd", "report", "pdf", "docx", "txt"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.11",
