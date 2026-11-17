@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.4.1] - 2026-11-17
+
+### Fixed
+
+- PDF and DOCX formatters no longer crash when `-o` points into a directory
+  that does not exist yet — the parent directories are created before writing.
+- Behave's native `context.attach(mime_type, data)` API is now supported via
+  `BaseFileFormatter.embedding()`, matching the JSON formatter contract.
+- Feature status is now read from the stored `FeatureSummary.status` in every
+  writer and in `RunSummary.status`, so feature-level hook failures are no
+  longer reported as e.g. `skipped`. `FeatureSummary.derive_status()` keeps a
+  stored `failed` status as a floor.
+- `Collector.end_scenario` prefers Behave's own `scenario.status` when present
+  (empty scenarios are now `skipped` instead of `untested`), and queued steps
+  that never produced a result keep the status Behave assigned them
+  (`skipped`/`undefined`) instead of being forced to `skipped`.
+- Attachments and logs buffered outside a step result are no longer silently
+  discarded when no step exists yet — they attach to the next available step
+  (covers `before_scenario`/`before_feature` hooks).
+- `attach_json` no longer crashes hooks on circular or unserializable data; it
+  attaches a `repr()` fallback as `text/plain` instead.
+- `attach_screenshot` tolerates drivers, pages and PIL images that raise at
+  capture time, and attribute detection no longer propagates property errors.
+- `normalize_status` maps `pending_error` → `failed`, `untested_undefined` →
+  `undefined` and `pending_warn` → `skipped`.
+- HTML reports render attachments and logs collected on background steps.
+- `untested` status now has its own icon (`·`), ASCII label and CSS classes
+  instead of falling back to the undefined glyph.
+- `attach_*`/`log` helpers isolate formatter failures: a formatter raising
+  from `attach`/`log` can no longer fail the test run.
+- `attach_text` coerces non-string input; attachment names are coerced to
+  `str` so non-string names cannot crash MIME guessing.
+- `end_step` tolerates non-numeric `step.duration`; `_extract_error` falls
+  back to the exception type name when `str(exception)` is empty.
+- `Environment.capture` now falls back to `git branch --show-current` so the
+  branch is reported even when `HEAD` is not at a ref tip.
+- Jinja2 autoescape now applies to custom templates of any extension
+  (previously a custom `.j2` template rendered step names unescaped), and
+  `primary_color` is validated before being inlined into CSS.
+- `DOCXWriter` validates `primary_color` defensively and sanitizes
+  XML-invalid characters in TOC links and bookmarks. Illegal XML 1.0
+  characters (control bytes) in feature/scenario/step names, docstrings,
+  errors, logs or attachment names no longer crash `python-docx` — report
+  models strip them at construction and the writer deep-cleans the summary
+  tree before serialization.
+- `TXTFormatter._close_stream` closes the stream directly when a custom
+  stream opener provides no `close()` method (file-handle leak).
+- `close()` only marks the formatter closed after a successful write so a
+  failing report can be retried.
+- `template`/`logo` paths now expand `~`.
+- `Collector` defensively finalizes a dangling scenario/feature on
+  `start_scenario`/`start_feature`/`end_feature` instead of dropping it.
+- Packaging metadata now uses the SPDX `license` field (PEP 639).
+
 ## [1.4.0] - 2026-10-03
 
 ### Fixed
