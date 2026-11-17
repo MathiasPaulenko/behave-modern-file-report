@@ -443,7 +443,8 @@ def test_result_flushes_buffers_to_step() -> None:
     assert scenario.steps[0].logs[0] == "log line"
 
 
-def test_result_clears_buffers_even_without_step() -> None:
+def test_result_without_step_keeps_buffers_for_later() -> None:
+    """Buffers with no queued step must not be silently dropped."""
     fmt = _make_formatter()
     fmt.attach(Attachment(name="orphan.txt", text="orphan"))
     fmt.log("orphan log")
@@ -460,8 +461,8 @@ def test_result_clears_buffers_even_without_step() -> None:
             error_message=None,
         )
     )
-    assert len(fmt._attachment_buffer) == 0
-    assert len(fmt._log_buffer) == 0
+    assert len(fmt._attachment_buffer) == 1
+    assert len(fmt._log_buffer) == 1
 
 
 def test_buffers_empty_after_init() -> None:
@@ -1111,3 +1112,91 @@ def test_package_all_contains_public_api() -> None:
     assert "attach_text" in pkg.__all__
     assert "attach_json" in pkg.__all__
     assert "log" in pkg.__all__
+
+
+def test_attach_json_circular_data_falls_back_to_repr() -> None:
+    """Circular structures must not fail the test run; attach repr() text."""
+    fmt = _make_formatter()
+    ctx = _mock_context(fmt)
+    data: dict[str, Any] = {"a": 1}
+    data["self"] = data
+    attach_json(ctx, data, name="data.json")
+    assert len(fmt._attachment_buffer) == 1
+    att = fmt._attachment_buffer[0]
+    assert att.mime_type == "text/plain"
+    assert att.name.endswith(".txt")
+    assert "'a': 1" in (att.text or "")
+
+
+def test_attach_json_unserializable_object_uses_default_str() -> None:
+    """Objects without a JSON representation serialize via default=str."""
+    fmt = _make_formatter()
+    ctx = _mock_context(fmt)
+    attach_json(ctx, {"when": object()}, name="data.json")
+    assert fmt._attachment_buffer[0].mime_type == "application/json"
+
+
+def test_capture_screenshot_driver_failure_returns_empty() -> None:
+    """A Selenium driver that raises must not propagate into hooks."""
+
+    class BrokenDriver:
+        @property
+        def screenshot_as_png(self) -> bytes:
+            raise RuntimeError("browser gone")
+
+        def save_screenshot(self, path: str) -> bool:
+            return False
+
+    assert _capture_screenshot(BrokenDriver()) == b""
+
+
+def test_capture_screenshot_playwright_failure_returns_empty() -> None:
+    """A Playwright page that raises must not propagate into hooks."""
+
+    class BrokenPage:
+        def screenshot(self) -> bytes:
+            raise RuntimeError("page crashed")
+
+    assert _capture_screenshot(BrokenPage()) == b""
+
+
+def test_capture_screenshot_pil_failure_returns_empty() -> None:
+    """A PIL image that fails to save must not propagate into hooks."""
+
+    class BrokenImage:
+        format = "PNG"
+        size = (1, 1)
+
+        def save(self, buf: Any, format: str = "") -> None:
+            raise OSError("no encoder")
+
+    assert _capture_screenshot(BrokenImage()) == b""
+
+
+def test_formatter_attach_failure_is_isolated() -> None:
+    """A formatter raising from attach() must not fail the test run."""
+    fmt = _make_formatter()
+    ctx = _mock_context(fmt)
+    original = fmt.attach
+    calls: list[str] = []
+
+    def boom(att: Attachment) -> None:
+        calls.append(att.name)
+        raise RuntimeError("formatter exploded")
+
+    fmt.attach = boom  # type: ignore[assignment]
+    attach_text(ctx, "hello", "a.txt")
+    assert calls == ["a.txt"]
+    fmt.attach = original  # type: ignore[method-assign]
+
+
+def test_formatter_log_failure_is_isolated() -> None:
+    """A formatter raising from log() must not fail the test run."""
+    fmt = _make_formatter()
+    ctx = _mock_context(fmt)
+
+    def boom(msg: str) -> None:
+        raise RuntimeError("formatter exploded")
+
+    fmt.log = boom  # type: ignore[assignment]
+    attach_log(ctx, "hello")

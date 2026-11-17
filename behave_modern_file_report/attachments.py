@@ -21,6 +21,7 @@ Supported sources for ``attach_screenshot``:
 from __future__ import annotations
 
 import base64
+import contextlib
 import io
 import json
 import mimetypes
@@ -43,7 +44,10 @@ def _find_formatters(context: Any) -> list[Any]:
     Returns:
         A list of ``BaseFileFormatter`` instances (possibly empty).
     """
-    runner = getattr(context, "_runner", None)
+    try:
+        runner = getattr(context, "_runner", None)
+    except Exception:
+        return []
     if runner is None:
         return []
     formatters = getattr(runner, "formatters", None)
@@ -87,6 +91,16 @@ def _guess_mime_type(name: str) -> str:
     return guessed or "application/octet-stream"
 
 
+def _deliver(fmt: Any, attachment: Attachment) -> None:
+    """Deliver an attachment to a formatter without failing the test run.
+
+    Attachments are best-effort observability data: a formatter that raises
+    from ``attach`` must not break the scenario it is reporting on.
+    """
+    with contextlib.suppress(Exception):
+        fmt.attach(attachment)
+
+
 def _bytes_to_base64(data: bytes) -> str:
     """Encode raw bytes to a base64 string.
 
@@ -115,8 +129,8 @@ def _make_attachment_from_bytes(
         An :class:`Attachment` with base64-encoded data.
     """
     return Attachment(
-        name=name,
-        mime_type=mime_type or _guess_mime_type(name),
+        name=name if isinstance(name, str) else str(name),
+        mime_type=mime_type or _guess_mime_type(str(name)),
         data_base64=_bytes_to_base64(data),
     )
 
@@ -137,7 +151,7 @@ def _make_attachment_from_text(
         An :class:`Attachment` with text content.
     """
     return Attachment(
-        name=name,
+        name=name if isinstance(name, str) else str(name),
         mime_type=mime_type,
         text=text,
     )
@@ -217,19 +231,31 @@ def _get_max_size_kb(formatter: Any) -> int:
 # ---------------------------------------------------------------------------
 
 
+def _has_attr(obj: Any, name: str) -> bool:
+    """``hasattr`` that tolerates property getters raising non-AttributeError.
+
+    A broken driver/page may raise ``RuntimeError`` from a property getter;
+    fall back to checking the type so the source is still recognized.
+    """
+    try:
+        return hasattr(obj, name)
+    except Exception:
+        return hasattr(type(obj), name)
+
+
 def _is_selenium_driver(obj: Any) -> bool:
     """Return ``True`` if *obj* looks like a Selenium ``WebDriver``."""
-    return hasattr(obj, "screenshot_as_png") and hasattr(obj, "save_screenshot")
+    return _has_attr(obj, "screenshot_as_png") and _has_attr(obj, "save_screenshot")
 
 
 def _is_playwright_page(obj: Any) -> bool:
     """Return ``True`` if *obj* looks like a Playwright ``Page``."""
-    return hasattr(obj, "screenshot") and not hasattr(obj, "screenshot_as_png")
+    return _has_attr(obj, "screenshot") and not _has_attr(obj, "screenshot_as_png")
 
 
 def _is_pil_image(obj: Any) -> bool:
     """Return ``True`` if *obj* looks like a PIL ``Image``."""
-    return hasattr(obj, "save") and hasattr(obj, "format") and hasattr(obj, "size")
+    return _has_attr(obj, "save") and _has_attr(obj, "format") and _has_attr(obj, "size")
 
 
 def _capture_screenshot(source: Any, max_size_kb: int = 0) -> bytes:
@@ -251,15 +277,24 @@ def _capture_screenshot(source: Any, max_size_kb: int = 0) -> bytes:
         return _read_file_bytes(source, max_size_kb)
 
     if _is_selenium_driver(source):
-        return source.screenshot_as_png  # type: ignore[no-any-return]
+        try:
+            return source.screenshot_as_png  # type: ignore[no-any-return]
+        except Exception:
+            return b""
 
     if _is_playwright_page(source):
-        return source.screenshot()  # type: ignore[no-any-return]
+        try:
+            return source.screenshot()  # type: ignore[no-any-return]
+        except Exception:
+            return b""
 
     if _is_pil_image(source):
-        buf = io.BytesIO()
-        source.save(buf, format="PNG")
-        return buf.getvalue()
+        try:
+            buf = io.BytesIO()
+            source.save(buf, format="PNG")
+            return buf.getvalue()
+        except Exception:
+            return b""
 
     raise TypeError(
         f"Unsupported screenshot source type: {type(source).__name__}",
@@ -294,7 +329,10 @@ def attach_screenshot(
         return
 
     if source is None:
-        source = getattr(context, "driver", None) or getattr(context, "page", None)
+        try:
+            source = getattr(context, "driver", None) or getattr(context, "page", None)
+        except Exception:
+            return
     if source is None:
         return
 
@@ -306,7 +344,7 @@ def attach_screenshot(
     for fmt in fmts:
         sized = _check_size(data, _get_max_size_kb(fmt))
         if sized:
-            fmt.attach(_make_attachment_from_bytes(sized, name, "image/png"))
+            _deliver(fmt, _make_attachment_from_bytes(sized, name, "image/png"))
 
 
 def attach_file(
@@ -335,7 +373,7 @@ def attach_file(
     for fmt in fmts:
         sized = _check_size(data, _get_max_size_kb(fmt))
         if sized:
-            fmt.attach(_make_attachment_from_bytes(sized, file_name))
+            _deliver(fmt, _make_attachment_from_bytes(sized, file_name))
 
 
 def attach_text(
@@ -354,6 +392,8 @@ def attach_text(
     if not fmts:
         return
 
+    if not isinstance(text, str):
+        text = str(text)
     for fmt in fmts:
         max_kb = _get_max_size_kb(fmt)
         sized_text = text
@@ -361,7 +401,7 @@ def attach_text(
         if max_kb > 0 and len(encoded) > max_kb * 1024:
             encoded = encoded[: max_kb * 1024]
             sized_text = encoded.decode("utf-8", errors="ignore")
-        fmt.attach(_make_attachment_from_text(sized_text, name))
+        _deliver(fmt, _make_attachment_from_text(sized_text, name))
 
 
 def attach_json(
@@ -380,7 +420,15 @@ def attach_json(
     if not fmts:
         return
 
-    text = json.dumps(data, indent=2, default=str, ensure_ascii=False)
+    mime_type = "application/json"
+    try:
+        text = json.dumps(data, indent=2, default=str, ensure_ascii=False)
+    except (TypeError, ValueError):
+        # Circular references or exotic objects must not fail the test run;
+        # attach a repr() fallback as plain text instead.
+        text = repr(data)
+        mime_type = "text/plain"
+        name = name if name.endswith(".txt") else f"{name}.txt"
     for fmt in fmts:
         max_kb = _get_max_size_kb(fmt)
         sized_text = text
@@ -388,7 +436,7 @@ def attach_json(
         if max_kb > 0 and len(encoded) > max_kb * 1024:
             encoded = encoded[: max_kb * 1024]
             sized_text = encoded.decode("utf-8", errors="ignore")
-        fmt.attach(_make_attachment_from_text(sized_text, name, "application/json"))
+        _deliver(fmt, _make_attachment_from_text(sized_text, name, mime_type))
 
 
 def log(context: Any, message: str) -> None:
@@ -399,7 +447,8 @@ def log(context: Any, message: str) -> None:
         message: The log message text.
     """
     for fmt in _find_formatters(context):
-        fmt.log(message)
+        with contextlib.suppress(Exception):
+            fmt.log(message)
 
 
 __all__ = [

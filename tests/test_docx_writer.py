@@ -595,3 +595,30 @@ def test_docx_default_primary_color(tmp_path: Path) -> None:
     title_para = doc.paragraphs[0]
     title_run = title_para.runs[0]
     assert title_run.font.color.rgb == RGBColor(0x25, 0x63, 0xEB)
+
+
+def test_docx_control_characters_in_text_do_not_crash(tmp_path: Path) -> None:
+    """Illegal XML 1.0 characters are stripped before document serialization."""
+    step = Step(keyword="Given", name="step\x01ctrl\x00", text="doc\x0bstring")
+    step.logs.append("log\x07bell")
+    step.error = ErrorInfo(message="err\x01", traceback="tb\x02", exception_type="E\x03")
+    scenario = ScenarioResult(
+        name="sc\x01enario", steps=[step], description="d\x04esc", tags=["t\x05ag"]
+    )
+    feature = FeatureSummary(
+        name="feat\x06ure", description="f\x07", tags=["f\x08"], scenarios=[scenario]
+    )
+    run = _make_run([feature], title="T\x09itle")
+    run.project_name = "P\x0aro"
+    path = _write(run, tmp_path)
+    text = _all_text(_read_docx(path))
+    assert "\x01" not in text and "\x07" not in text and "\x00" not in text
+
+
+def test_clean_xml_text_strips_illegal_chars() -> None:
+    from behave_modern_file_report.utils import clean_xml_text
+
+    assert clean_xml_text("a\x00b\x07c\x1fd") == "abcd"
+    assert clean_xml_text("keep\t\n\r ok") == "keep\t\n\r ok"
+    assert clean_xml_text("\ufffe\uffffx") == "x"
+    assert clean_xml_text("\ud800\udfff x") == " x"

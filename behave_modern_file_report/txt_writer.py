@@ -25,6 +25,7 @@ from behave_modern_file_report.utils import (
     STATUS_PASSED,
     STATUS_SKIPPED,
     STATUS_UNDEFINED,
+    STATUS_UNTESTED,
     format_duration,
 )
 
@@ -34,6 +35,7 @@ _STATUS_ICONS_UNICODE: dict[str, str] = {
     STATUS_FAILED: "\u2717",
     STATUS_SKIPPED: "\u25cb",
     STATUS_UNDEFINED: "?",
+    STATUS_UNTESTED: "\u00b7",
 }
 
 _STATUS_ICONS_ASCII: dict[str, str] = {
@@ -41,6 +43,7 @@ _STATUS_ICONS_ASCII: dict[str, str] = {
     STATUS_FAILED: "[FAIL]",
     STATUS_SKIPPED: "[SKIP]",
     STATUS_UNDEFINED: "[????]",
+    STATUS_UNTESTED: "[UNTESTED]",
 }
 
 
@@ -144,7 +147,7 @@ class TXTWriter:
 
     def _write_feature(self, feature: FeatureSummary, stream: TextIO) -> None:
         """Write a feature section with its scenarios."""
-        icon = self._icons.get(feature.derive_status(), "?")
+        icon = self._icons.get(feature.status, "?")
         stream.write(self._separator("-"))
         stream.write("\n")
         stream.write(f"{icon} FEATURE: {feature.name}")
@@ -258,7 +261,7 @@ class TXTWriter:
                 size_info = ""
                 if att.data_base64:
                     try:
-                        raw_len = len(base64.b64decode(att.data_base64))
+                        raw_len = len(base64.b64decode(att.data_base64, validate=True))
                         size_info = f" ({raw_len} bytes)"
                     except (binascii.Error, ValueError):
                         size_info = " (invalid base64)"

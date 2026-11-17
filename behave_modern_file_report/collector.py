@@ -56,7 +56,7 @@ class Collector:
         self._current_scenario: ScenarioResult | None = None
         self._current_behave_feature: Any = None
         self._current_behave_scenario: Any = None
-        self._step_queue: deque[Step] = deque()
+        self._step_queue: deque[tuple[Step, Any]] = deque()
         self._scenario_start: float = 0.0
         self._feature_start: float = 0.0
         self._max_traceback_lines: int = max_traceback_lines
@@ -71,7 +71,7 @@ class Collector:
             The next queued step, or ``None`` if the queue is empty.
         """
         if self._step_queue:
-            return self._step_queue[0]
+            return self._step_queue[0][0]
         return None
 
     def start_feature(self, behave_feature: Any) -> None:
@@ -81,6 +81,8 @@ class Collector:
             behave_feature: A Behave ``Feature`` object (or mock) with
                 ``name``, ``description``, ``tags``, and ``location``.
         """
+        self.end_feature()  # finalize a dangling feature, if any
+
         tags = list(getattr(behave_feature, "tags", []) or [])
         location = str(getattr(behave_feature, "location", ""))
         description = safe_description(behave_feature)
@@ -120,12 +122,16 @@ class Collector:
             behave_scenario: A Behave ``Scenario`` object (or mock) with
                 ``name``, ``tags``, ``location``, and ``feature``.
         """
+        self.end_scenario()  # finalize a dangling scenario, if any
+
         tags = list(getattr(behave_scenario, "tags", []) or [])
         location = str(getattr(behave_scenario, "location", ""))
         feature_name = ""
         feature = getattr(behave_scenario, "feature", None)
         if feature is not None:
             feature_name = getattr(feature, "name", "") or ""
+        if not feature_name and self._current_feature is not None:
+            feature_name = self._current_feature.name
 
         parent = getattr(behave_scenario, "parent", None)
         parent_type = getattr(parent, "type", "")
@@ -149,7 +155,11 @@ class Collector:
                 node = getattr(node, "parent", None)
 
         bg_steps = getattr(behave_scenario, "background_steps", None) or []
-        self._bg_step_count = len(bg_steps)
+        try:
+            self._bg_step_count = len(bg_steps)
+        except TypeError:
+            bg_steps = list(bg_steps)
+            self._bg_step_count = len(bg_steps)
         self._bg_name = ""
         if self._bg_step_count:
             bg_obj = getattr(behave_scenario, "background", None)
@@ -189,11 +199,14 @@ class Collector:
             text = str(text).strip()
 
         self._step_queue.append(
-            Step(
-                keyword=keyword,
-                name=name,
-                location=location,
-                text=text,
+            (
+                Step(
+                    keyword=keyword,
+                    name=name,
+                    location=location,
+                    text=text,
+                ),
+                behave_step,
             )
         )
 
@@ -209,16 +222,16 @@ class Collector:
         if self._current_scenario is None:
             return
 
-        current_step = self._step_queue.popleft()
+        current_step, _ = self._step_queue.popleft()
 
-        raw_status = getattr(behave_step, "status", None)
-        if raw_status is not None and not isinstance(raw_status, str):
-            raw_status = getattr(raw_status, "name", str(raw_status))
-        current_step.status = normalize_status(raw_status)
+        current_step.status = normalize_status(_raw_status(behave_step))
 
         duration = getattr(behave_step, "duration", None)
         if duration is not None:
-            current_step.duration = float(duration)
+            try:
+                current_step.duration = float(duration)
+            except (TypeError, ValueError):
+                current_step.duration = 0.0
         else:
             current_step.duration = 0.0
 
@@ -238,12 +251,18 @@ class Collector:
         if self._current_scenario is None or self._current_feature is None:
             self._step_queue.clear()
             self._bg_step_count = 0
+            self._current_scenario = None
+            self._current_behave_scenario = None
             return
 
-        # Finalize any remaining queued steps as skipped
+        # Finalize steps announced but never executed (skipped, undefined,
+        # or left untested in dry-run). Behave sets their status without
+        # emitting a result event, so keep whatever status it recorded.
         while self._step_queue:
-            step = self._step_queue.popleft()
-            step.status = STATUS_SKIPPED
+            step, behave_step = self._step_queue.popleft()
+            step.status = normalize_status(_raw_status(behave_step))
+            if step.status == STATUS_UNTESTED:
+                step.status = STATUS_SKIPPED
             if self._bg_step_count > 0:
                 self._bg_step_count -= 1
                 if self._current_scenario.background is None:
@@ -254,6 +273,11 @@ class Collector:
 
         self._current_scenario.duration = time.perf_counter() - self._scenario_start
         self._current_scenario.status = _derive_scenario_status(self._current_scenario)
+        # Behave computes the authoritative scenario status (covers empty
+        # scenarios reported as skipped, pending steps, hook errors, ...).
+        behave_status = normalize_status(_raw_status(self._current_behave_scenario))
+        if behave_status != STATUS_UNTESTED:
+            self._current_scenario.status = behave_status
         # A failed before/after_scenario hook marks the scenario failed even
         # when all its steps were skipped.
         if getattr(self._current_behave_scenario, "hook_failed", False):
@@ -279,6 +303,7 @@ class Collector:
         if self._current_feature is None:
             return
 
+        self.end_scenario()  # finalize a still-open scenario, if any
         self._current_feature.duration = time.perf_counter() - self._feature_start
         self._current_feature.status = self._current_feature.derive_status()
         if getattr(self._current_behave_feature, "hook_failed", False):
@@ -307,6 +332,18 @@ class Collector:
         )
 
 
+def _raw_status(behave_obj: Any) -> str | None:
+    """Read a Behave ``status`` attribute as a plain string.
+
+    Behave statuses are ``Status`` enum members; mocks may supply plain
+    strings or ``None``.
+    """
+    raw = getattr(behave_obj, "status", None)
+    if raw is not None and not isinstance(raw, str):
+        raw = getattr(raw, "name", str(raw))
+    return raw
+
+
 def _extract_error(behave_step: Any, max_traceback_lines: int) -> ErrorInfo | None:
     """Extract error information from a failed Behave step.
 
@@ -328,8 +365,8 @@ def _extract_error(behave_step: Any, max_traceback_lines: int) -> ErrorInfo | No
     if exception is None:
         return None
 
-    message = str(exception).strip()
     exception_type = type(exception).__name__
+    message = str(exception).strip() or exception_type
 
     traceback_str = ""
     exc_traceback = getattr(behave_step, "exc_traceback", None)

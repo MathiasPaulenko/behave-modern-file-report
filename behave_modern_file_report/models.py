@@ -15,6 +15,7 @@ from behave_modern_file_report.utils import (
     STATUS_SKIPPED,
     STATUS_UNDEFINED,
     STATUS_UNTESTED,
+    clean_xml_text,
     parse_bool,
     parse_color,
     parse_int,
@@ -39,6 +40,11 @@ class ErrorInfo:
     message: str = ""
     traceback: str = ""
     exception_type: str = ""
+
+    def __post_init__(self) -> None:
+        self.message = clean_xml_text(self.message)
+        self.traceback = clean_xml_text(self.traceback)
+        self.exception_type = clean_xml_text(self.exception_type)
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +73,15 @@ class Attachment:
     step_name: str = ""
     scenario_name: str = ""
     feature_name: str = ""
+
+    def __post_init__(self) -> None:
+        self.name = clean_xml_text(self.name)
+        self.mime_type = clean_xml_text(self.mime_type)
+        if self.text is not None:
+            self.text = clean_xml_text(self.text)
+        self.step_name = clean_xml_text(self.step_name)
+        self.scenario_name = clean_xml_text(self.scenario_name)
+        self.feature_name = clean_xml_text(self.feature_name)
 
     @property
     def is_image(self) -> bool:
@@ -115,6 +130,14 @@ class Step:
     attachments: list[Attachment] = field(default_factory=list)
     logs: list[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        self.keyword = clean_xml_text(self.keyword)
+        self.name = clean_xml_text(self.name)
+        self.location = clean_xml_text(self.location)
+        if self.text is not None:
+            self.text = clean_xml_text(self.text)
+        self.logs = [clean_xml_text(str(line)) for line in self.logs]
+
 
 # ---------------------------------------------------------------------------
 # Background
@@ -132,6 +155,9 @@ class Background:
 
     name: str = ""
     steps: list[Step] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.name = clean_xml_text(self.name)
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +199,15 @@ class ScenarioResult:
     description: str = ""
     error: ErrorInfo | None = None
 
+    def __post_init__(self) -> None:
+        self.name = clean_xml_text(self.name)
+        self.location = clean_xml_text(self.location)
+        self.feature_name = clean_xml_text(self.feature_name)
+        self.rule_name = clean_xml_text(self.rule_name)
+        self.outline_name = clean_xml_text(self.outline_name)
+        self.tags = [clean_xml_text(str(t)) for t in self.tags]
+        self.description = clean_xml_text(self.description)
+
 
 # ---------------------------------------------------------------------------
 # FeatureSummary
@@ -202,6 +237,12 @@ class FeatureSummary:
     location: str = ""
     scenarios: list[ScenarioResult] = field(default_factory=list)
     background: Background | None = None
+
+    def __post_init__(self) -> None:
+        self.name = clean_xml_text(self.name)
+        self.description = clean_xml_text(self.description)
+        self.location = clean_xml_text(self.location)
+        self.tags = [clean_xml_text(str(t)) for t in self.tags]
 
     @property
     def total_scenarios(self) -> int:
@@ -241,7 +282,13 @@ class FeatureSummary:
 
         Status precedence (worst wins):
             ``"failed"`` > ``"undefined"`` > ``"skipped"`` > ``"untested"`` > ``"passed"``
+
+        A stored ``status`` of ``"failed"`` (for example a feature-level hook
+        failure recorded by the collector) always wins, since it cannot be
+        recovered from the scenario list alone.
         """
+        if self.status == STATUS_FAILED:
+            return STATUS_FAILED
         if not self.scenarios:
             return STATUS_UNTESTED
         statuses = {s.status for s in self.scenarios}
@@ -289,6 +336,20 @@ class Environment:
     git_branch: str = ""
     git_commit: str = ""
 
+    def __post_init__(self) -> None:
+        for attr in (
+            "python_version",
+            "behave_version",
+            "platform",
+            "hostname",
+            "cwd",
+            "command",
+            "user",
+            "git_branch",
+            "git_commit",
+        ):
+            setattr(self, attr, clean_xml_text(str(getattr(self, attr))))
+
     @classmethod
     def capture(cls) -> Environment:
         """Capture the current runtime environment information."""
@@ -323,6 +384,18 @@ class Environment:
                 git_branch = match.group(1).strip()
         except Exception:
             pass
+        if not git_branch and git_commit:
+            # %D only names the branch when HEAD is at a ref tip; fall back to
+            # the symbolic ref so branches show up on older commits too.
+            with contextlib.suppress(Exception):
+                proc = subprocess.run(
+                    ["git", "branch", "--show-current"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=3,
+                )
+                git_branch = proc.stdout.strip()
 
         cwd = ""
         with contextlib.suppress(OSError):
@@ -374,6 +447,13 @@ class RunSummary:
     duration: float = 0.0
     features: list[FeatureSummary] = field(default_factory=list)
     environment: Environment = field(default_factory=Environment)
+
+    def __post_init__(self) -> None:
+        self.run_id = clean_xml_text(self.run_id)
+        self.title = clean_xml_text(self.title)
+        self.project_name = clean_xml_text(self.project_name)
+        self.start_time = clean_xml_text(self.start_time)
+        self.end_time = clean_xml_text(self.end_time)
 
     @property
     def total_features(self) -> int:

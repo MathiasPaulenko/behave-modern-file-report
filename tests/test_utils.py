@@ -263,3 +263,15 @@ def test_parse_columns() -> None:
 
 
 __all__ = ["utils"]
+
+
+def test_normalize_status_pending_error_is_failed() -> None:
+    assert normalize_status("pending_error") == "failed"
+
+
+def test_normalize_status_untested_undefined_is_undefined() -> None:
+    assert normalize_status("untested_undefined") == "undefined"
+
+
+def test_normalize_status_pending_warn_is_skipped() -> None:
+    assert normalize_status("pending_warn") == "skipped"

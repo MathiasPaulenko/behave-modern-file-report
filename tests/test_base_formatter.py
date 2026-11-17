@@ -222,7 +222,7 @@ def test_step_starts_collector_step() -> None:
     fmt.scenario(_mock_scenario())
     fmt.step(_mock_step(name="my step"))
     assert len(fmt._collector._step_queue) == 1
-    assert fmt._collector._step_queue[0].name == "my step"
+    assert fmt._collector._step_queue[0][0].name == "my step"
 
 
 def test_result_finalizes_step() -> None:
@@ -406,14 +406,14 @@ def test_result_flushes_logs_to_step() -> None:
     assert len(fmt._log_buffer) == 0
 
 
-def test_result_without_current_step_clears_buffers() -> None:
-    """result() without a current step still clears buffers."""
+def test_result_without_current_step_keeps_buffers() -> None:
+    """result() with no queued step must not silently drop buffered data."""
     fmt = TestFormatter()
     fmt.attach(Attachment(name="orphan.png", mime_type="image/png"))
     fmt.log("orphan log")
     fmt.result(_mock_step(status="passed"))
-    assert len(fmt._attachment_buffer) == 0
-    assert len(fmt._log_buffer) == 0
+    assert len(fmt._attachment_buffer) == 1
+    assert len(fmt._log_buffer) == 1
 
 
 def test_multiple_attachments_and_logs_on_same_step() -> None:
@@ -452,15 +452,20 @@ def test_orphan_attachments_flushed_to_last_step_on_scenario_end() -> None:
     assert scenario.steps[0].logs == ["after step log"]
 
 
-def test_orphan_attachments_discarded_when_no_scenario() -> None:
-    """Orphan attachments/logs are discarded when there is no current scenario."""
+def test_orphan_attachments_survive_until_a_step_exists() -> None:
+    """Orphan attachments/logs are carried forward to the first available step."""
     fmt = TestFormatter()
     fmt.attach(Attachment(name="orphan.png", mime_type="image/png"))
     fmt.log("orphan log")
+    fmt.feature(_mock_feature())
+    fmt.scenario(_mock_scenario())
+    fmt.step(_mock_step(name="step 1"))
+    fmt.result(_mock_step(name="step 1", status="passed"))
     fmt.eof()
     fmt.close()
-    assert len(fmt._attachment_buffer) == 0
-    assert len(fmt._log_buffer) == 0
+    scenario = fmt.write_calls[0][0].features[0].scenarios[0]
+    assert scenario.steps[0].attachments[0].name == "orphan.png"
+    assert scenario.steps[0].logs == ["orphan log"]
 
 
 # ---------------------------------------------------------------------------
@@ -640,3 +645,103 @@ def test_resolve_logo_skips_oversized_files(tmp_path: Any) -> None:
     fmt._resolve_logo()
 
     assert fmt._options.logo_b64 == ""
+
+
+# ---------------------------------------------------------------------------
+# Regression: context.attach() support, path creation, buffer safety
+# ---------------------------------------------------------------------------
+
+
+def test_embedding_buffers_attachment() -> None:
+    """Behave's context.attach() routes through embedding() to the step."""
+    fmt = TestFormatter()
+    fmt.feature(_mock_feature())
+    fmt.scenario(_mock_scenario())
+    fmt.step(_mock_step(name="step 1"))
+    fmt.embedding("image/png", b"\x89PNG-binary")
+    fmt.result(_mock_step(name="step 1", status="passed"))
+    assert fmt._collector._current_scenario is not None
+    step = fmt._collector._current_scenario.steps[0]
+    assert len(step.attachments) == 1
+    att = step.attachments[0]
+    assert att.mime_type == "image/png"
+    assert att.name.endswith(".png")
+    assert att.data_base64
+
+
+def test_embedding_text_mime_populates_text() -> None:
+    """Text embeddings decode the payload for the text field."""
+    fmt = TestFormatter()
+    fmt.embedding("text/plain", b"hello world")
+    att = fmt._attachment_buffer[0]
+    assert att.text == "hello world"
+    assert att.name.endswith(".txt")
+
+
+def test_embedding_accepts_str_and_bad_data() -> None:
+    """embedding() tolerates str payloads and unconvertible objects."""
+    fmt = TestFormatter()
+    fmt.embedding("application/json", '{"a": 1}')
+    assert fmt._attachment_buffer[0].text == '{"a": 1}'
+    fmt.embedding("application/octet-stream", object())
+    assert len(fmt._attachment_buffer) == 2
+
+
+def test_log_coerces_non_string_messages() -> None:
+    """log() accepts non-string messages without breaking writers."""
+    fmt = TestFormatter()
+    fmt.log(12345)  # type: ignore[arg-type]
+    assert fmt._log_buffer == ["12345"]
+
+
+def test_resolve_path_creates_missing_parent(tmp_path: Any) -> None:
+    """Binary writers must get a writable path even when dirs are missing."""
+    target = tmp_path / "a" / "b" / "report.pdf"
+    opener = SimpleNamespace(name=str(target), stream=None)
+    fmt = TestFormatter(stream_opener=opener)
+    resolved = fmt._resolve_path()
+    assert resolved == str(target)
+    assert target.parent.is_dir()
+
+
+def test_resolve_path_keeps_plain_filename() -> None:
+    """A plain filename has no directory to create."""
+    fmt = TestFormatter(stream_opener=SimpleNamespace(name="report.pdf", stream=None))
+    assert fmt._resolve_path() == "report.pdf"
+
+
+def test_close_retry_after_failed_write() -> None:
+    """A failing _write_report must not permanently mark the formatter closed."""
+    fmt = TestFormatter()
+    fmt.feature(_mock_feature())
+    fmt.eof()
+    fmt._fail_once = True
+
+    original = fmt._write_report
+
+    def flaky(run: Any, opts: Any) -> None:
+        if fmt._fail_once:
+            fmt._fail_once = False
+            raise OSError("disk full")
+        original(run, opts)
+
+    fmt._write_report = flaky  # type: ignore[assignment]
+    with pytest.raises(OSError):
+        fmt.close()
+    fmt.close()
+    assert len(fmt.write_calls) == 1
+
+
+def test_only_failed_keeps_hook_failed_feature() -> None:
+    """only_failed must keep a feature failed by a hook with no failed scenarios."""
+    fmt = TestFormatter(config=_mock_config({"bmfr.only_failed": "true"}))
+    feature = _mock_feature()
+    feature.hook_failed = True
+    fmt.feature(feature)
+    fmt.scenario(_mock_scenario(name="skipped scn"))
+    fmt.eof()
+    fmt.close()
+    summary = fmt.write_calls[0][0]
+    assert summary.status == "failed"
+    assert len(summary.features) == 1
+    assert summary.features[0].scenarios[0].name == "skipped scn"

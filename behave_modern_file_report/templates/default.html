@@ -133,7 +133,7 @@
   <section class="feature" id="feature-{{ loop.index }}">
     <header class="feature-header">
       <h1 class="section-title">{{ feature.name }}</h1>
-      <span class="badge badge-{{ feature.derive_status() }}">{{ feature.derive_status() }}</span>
+      <span class="badge badge-{{ feature.status }}">{{ feature.status }}</span>
     </header>
     {% if feature.location %}
     <p class="feature-location">{{ feature.location }}</p>
@@ -274,8 +274,9 @@
       </div>
       {% endif %}
 
+      {% set all_steps = (scenario.background.steps + scenario.steps) if scenario.background else scenario.steps %}
       {% set scenario_attachments = [] %}
-      {% for step in scenario.steps %}
+      {% for step in all_steps %}
         {% for attachment in step.attachments %}
           {% if scenario_attachments.append(attachment) %}{% endif %}
         {% endfor %}
@@ -304,7 +305,7 @@
       {% endif %}
 
       {% set scenario_logs = [] %}
-      {% for step in scenario.steps %}
+      {% for step in all_steps %}
         {% for log_line in step.logs %}
           {% if scenario_logs.append(log_line) %}{% endif %}
         {% endfor %}

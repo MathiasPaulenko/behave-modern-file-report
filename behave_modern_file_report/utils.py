@@ -44,6 +44,7 @@ STATUS_COLORS: dict[str, str] = {
     STATUS_FAILED: "#EF4444",
     STATUS_SKIPPED: "#F59E0B",
     STATUS_UNDEFINED: "#9CA3AF",
+    STATUS_UNTESTED: "#6B7280",
 }
 
 
@@ -124,6 +125,28 @@ def safe_tags(value: object | None) -> list[str]:
     return []
 
 
+def clean_xml_text(text: str) -> str:
+    """Strip characters that are illegal in XML 1.0 documents.
+
+    Control characters outside the XML 1.0 ``Char`` production make ``lxml``
+    and OOXML serialization fail, so report text must exclude them.
+
+    Args:
+        text: Any string.
+
+    Returns:
+        The string with illegal XML characters removed.
+    """
+    return "".join(
+        ch
+        for ch in text
+        if ch in "\t\n\r"
+        or 0x20 <= ord(ch) <= 0xD7FF
+        or 0xE000 <= ord(ch) <= 0xFFFD
+        or 0x10000 <= ord(ch) <= 0x10FFFF
+    )
+
+
 # ---------------------------------------------------------------------------
 # Timing
 # ---------------------------------------------------------------------------
@@ -193,9 +216,10 @@ def normalize_status(behave_status: str | None) -> str:
 
     Behave's ``Status`` enum includes values beyond the basic four:
     ``xfailed`` (expected failure that failed) and ``xpassed`` (expected failure
-    that passed) are treated as ``passed``; ``error``, ``hook_error``, and
-    ``cleanup_error`` are treated as ``failed``; ``pending`` is treated as
-    ``undefined``.
+    that passed) are treated as ``passed``; ``error``, ``hook_error``,
+    ``cleanup_error``, and ``pending_error`` are treated as ``failed``;
+    ``pending`` and ``untested_undefined`` are treated as ``undefined``;
+    ``pending_warn`` is treated as ``skipped``.
 
     Args:
         behave_status: A status string from Behave (e.g. ``"passed"``).
@@ -219,11 +243,11 @@ def normalize_status(behave_status: str | None) -> str:
     status = behave_status.lower().strip()
     if status in (STATUS_PASSED, "xfailed", "xpassed"):
         return STATUS_PASSED
-    if status in (STATUS_FAILED, "error", "hook_error", "cleanup_error"):
+    if status in (STATUS_FAILED, "error", "hook_error", "cleanup_error", "pending_error"):
         return STATUS_FAILED
-    if status == STATUS_SKIPPED:
+    if status in (STATUS_SKIPPED, "pending_warn"):
         return STATUS_SKIPPED
-    if status in (STATUS_UNDEFINED, "pending"):
+    if status in (STATUS_UNDEFINED, "pending", "untested_undefined"):
         return STATUS_UNDEFINED
     return STATUS_UNTESTED
 
@@ -396,6 +420,7 @@ __all__ = [
     "STATUS_SKIPPED",
     "STATUS_UNDEFINED",
     "STATUS_UNTESTED",
+    "clean_xml_text",
     "format_duration",
     "generate_id",
     "monotonic_seconds",

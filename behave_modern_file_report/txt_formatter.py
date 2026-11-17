@@ -6,6 +6,7 @@ declare a ``behave-modern-txt`` alias under ``[behave.formatters]``.
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from behave_modern_file_report.base_formatter import BaseFileFormatter
@@ -67,6 +68,9 @@ class TXTFormatter(BaseFileFormatter):
             close_method = getattr(self._stream_opener, "close", None)
             if callable(close_method):
                 close_method()
+            elif stream is not sys.stdout:
+                # Custom openers without close() would otherwise leak the handle.
+                stream.close()
 
 
 __all__ = ["TXTFormatter"]

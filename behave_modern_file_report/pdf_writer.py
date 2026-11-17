@@ -535,7 +535,7 @@ class ReportLabWriter:
         from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
 
         story.append(Paragraph(_escape(feature.name), style_h1))
-        feature_status = feature.derive_status()
+        feature_status = feature.status
         status_label = STATUS_LABELS.get(feature_status, feature_status.upper())
         status_color = _STATUS_COLORS.get(feature_status, _TEXT_MUTED)
         story.append(

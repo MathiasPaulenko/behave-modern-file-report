@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from behave_modern_file_report.html_renderer import render_html
 from behave_modern_file_report.models import (
@@ -724,3 +725,72 @@ def test_format_duration_zero() -> None:
         _make_run([_make_feature(scenarios=[_make_scenario(steps=[step])])]),
     )
     assert "0ms" in html
+
+
+def test_render_escapes_data_in_custom_template(tmp_path: Any) -> None:
+    """Custom templates with non-.html extensions still autoescape."""
+    (tmp_path / "custom.j2").write_text(
+        "{% for f in run.features %}{{ f.name }}|"
+        "{% for s in f.scenarios %}{{ s.name }}{% endfor %}{% endfor %}",
+        encoding="utf-8",
+    )
+    run = _make_run(
+        features=[
+            _make_feature(
+                name="<script>alert(1)</script>",
+                scenarios=[_make_scenario(name="<b>bold</b>")],
+            )
+        ]
+    )
+    options = ReportOptions(template=str(tmp_path / "custom.j2"))
+    html = render_html(run, options)
+    assert "<script>alert(1)</script>" not in html
+    assert "&lt;script&gt;" in html
+    assert "&lt;b&gt;" in html
+
+
+def test_render_includes_background_step_attachments() -> None:
+    """Attachments on background steps must appear in the scenario section."""
+    bg = Background(
+        name="BG",
+        steps=[
+            Step(
+                keyword="Given",
+                name="bg step",
+                status="passed",
+                attachments=[
+                    Attachment(
+                        name="bg.png",
+                        mime_type="image/png",
+                        data_base64="aGVsbG8=",
+                    )
+                ],
+            )
+        ],
+    )
+    scenario = _make_scenario(background=bg)
+    run = _make_run(features=[_make_feature(scenarios=[scenario])])
+    html = render_html(run)
+    assert "bg.png" in html
+    assert "aGVsbG8=" in html
+
+
+def test_render_includes_background_step_logs() -> None:
+    """Logs on background steps must appear in the scenario section."""
+    bg = Background(
+        name="BG",
+        steps=[Step(keyword="Given", name="bg", status="passed", logs=["bg log line"])],
+    )
+    scenario = _make_scenario(background=bg)
+    run = _make_run(features=[_make_feature(scenarios=[scenario])])
+    html = render_html(run)
+    assert "bg log line" in html
+
+
+def test_render_uses_stored_feature_status() -> None:
+    """A stored failed status (hook failure) renders as failed even if
+    scenario derivation would say otherwise."""
+    feat = _make_feature(status="failed", scenarios=[_make_scenario(status="passed")])
+    run = _make_run(features=[feat])
+    html = render_html(run)
+    assert "badge-failed" in html

@@ -41,6 +41,8 @@ from behave_modern_file_report.utils import (
     STATUS_PASSED,
     STATUS_SKIPPED,
     STATUS_UNDEFINED,
+    STATUS_UNTESTED,
+    clean_xml_text,
     format_duration,
     hex_to_rgb,
 )
@@ -55,6 +57,7 @@ _STATUS_ICONS: dict[str, str] = {
     STATUS_FAILED: "\u2717",
     STATUS_SKIPPED: "\u2298",
     STATUS_UNDEFINED: "?",
+    STATUS_UNTESTED: "\u00b7",
 }
 
 _DEFAULT_PRIMARY = RGBColor(0x25, 0x63, 0xEB)
@@ -63,6 +66,36 @@ _TEXT_MUTED = RGBColor(0x6B, 0x72, 0x80)
 _ERROR_BG = "FEF2F2"
 _ERROR_BORDER = "EF4444"
 _SURFACE_BG = "F9FAFB"
+
+
+def _deep_clean(obj: object) -> None:
+    """Strip illegal XML characters from every text field of a dataclass tree.
+
+    ``__post_init__`` already sanitizes constructor input, but text fields can
+    be mutated afterwards (for example ``step.logs.append(...)``). ``lxml``
+    rejects those characters at document save time, so the whole summary tree
+    is cleaned once before rendering.
+    """
+    import dataclasses
+
+    if not dataclasses.is_dataclass(obj) or isinstance(obj, type):
+        return
+    for f in dataclasses.fields(obj):
+        value = getattr(obj, f.name)
+        if isinstance(value, str):
+            setattr(obj, f.name, clean_xml_text(value))
+        elif isinstance(value, list):
+            if any(isinstance(item, str) for item in value):
+                setattr(
+                    obj,
+                    f.name,
+                    [clean_xml_text(item) if isinstance(item, str) else item for item in value],
+                )
+            for item in value:
+                if not isinstance(item, str):
+                    _deep_clean(item)
+        else:
+            _deep_clean(value)
 
 
 def _hex_to_rgb(hex_color: str) -> RGBColor:
@@ -106,12 +139,16 @@ class DOCXWriter:
             options: The resolved report options.
         """
         self._options = options
-        self._primary = (
-            _hex_to_rgb(options.primary_color) if options.primary_color else _DEFAULT_PRIMARY
-        )
-        self._primary_dark = (
-            _darken(options.primary_color) if options.primary_color else _DEFAULT_PRIMARY_DARK
-        )
+        self._primary = _DEFAULT_PRIMARY
+        self._primary_dark = _DEFAULT_PRIMARY_DARK
+        if options.primary_color:
+            # ReportOptions can be built directly with an unvalidated color;
+            # fall back to the brand default instead of crashing.
+            try:
+                self._primary = _hex_to_rgb(options.primary_color)
+                self._primary_dark = _darken(options.primary_color)
+            except (ValueError, IndexError):
+                pass
         self._bookmark_id = 1
 
     def write(self, run_summary: RunSummary, path: str | Path) -> None:
@@ -121,6 +158,7 @@ class DOCXWriter:
             run_summary: The finalized run summary.
             path: Output file path for the ``.docx`` file.
         """
+        _deep_clean(run_summary)
         doc = Document()
         self._bookmark_id = 1
         self._setup_styles(doc)
@@ -407,7 +445,7 @@ class DOCXWriter:
         self._add_bookmark(heading, f"feature-{feature_index}")
 
         # Status badge
-        status = feature.derive_status()
+        status = feature.status
         self._add_status_badge(doc, status)
 
         # Location
@@ -758,7 +796,7 @@ class DOCXWriter:
         w_ns = nsmap["w"]
         bid = self._bookmark_id
         self._bookmark_id += 1
-        safe_name = _html_escape(name, quote=True)
+        safe_name = _html_escape(clean_xml_text(name), quote=True)
         start = parse_xml(f'<w:bookmarkStart w:id="{bid}" w:name="{safe_name}" xmlns:w="{w_ns}" />')
         end = parse_xml(f'<w:bookmarkEnd w:id="{bid}" xmlns:w="{w_ns}" />')
         p = paragraph._p
@@ -778,8 +816,8 @@ class DOCXWriter:
     ) -> None:
         """Add a hyperlink to a bookmark in the given paragraph."""
         w_ns = nsmap["w"]
-        escaped = _html_escape(text, quote=True)
-        safe_anchor = _html_escape(bookmark_name, quote=True)
+        escaped = _html_escape(clean_xml_text(text), quote=True)
+        safe_anchor = _html_escape(clean_xml_text(bookmark_name), quote=True)
         half_pts = font_size * 2
         hyperlink = parse_xml(
             f'<w:hyperlink w:anchor="{safe_anchor}" w:history="1" '

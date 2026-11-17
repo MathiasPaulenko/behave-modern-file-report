@@ -58,7 +58,11 @@ def _create_env(template_dir: Path | None = None) -> Environment:
     """
     env = Environment(
         loader=FileSystemLoader(str(template_dir or _TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "xml"]),
+        autoescape=select_autoescape(
+            enabled_extensions=("html", "xml", "htm", "xhtml"),
+            default_for_string=True,
+            default=True,
+        ),
         trim_blocks=True,
         lstrip_blocks=True,
     )
@@ -85,7 +89,7 @@ def _resolve_template_path(
         A tuple of ``(template_dir, template_name, css_name)``.
     """
     if options.template:
-        custom = Path(options.template)
+        custom = Path(options.template).expanduser()
         if custom.is_file():
             return custom.parent, custom.name, "default.css"
         # Could be a directory
@@ -136,8 +140,10 @@ def render_html(
     else:
         css_content = ""
 
-    # Inject primary_color into CSS variables
-    if opts.primary_color:
+    # Inject primary_color into CSS variables. The value goes raw into a
+    # <style> block, so only a strict hex color is accepted; anything else
+    # would be an injection vector when ReportOptions is built directly.
+    if opts.primary_color and re.fullmatch(r"#[0-9A-Fa-f]{6}", opts.primary_color):
         css_content = re.sub(
             r"--color-primary:\s*[^;]+;",
             f"--color-primary: {opts.primary_color};",

@@ -274,9 +274,9 @@ def test_start_step_creates_tracker() -> None:
     col.start_scenario(_mock_scenario(name="S1"))
     col.start_step(_mock_step(keyword="When", name="click button"))
     assert len(col._step_queue) == 1
-    assert col._step_queue[0].keyword == "When"
-    assert col._step_queue[0].name == "click button"
-    assert col._step_queue[0].status == "untested"
+    assert col._step_queue[0][0].keyword == "When"
+    assert col._step_queue[0][0].name == "click button"
+    assert col._step_queue[0][0].status == "untested"
 
 
 def test_peek_current_step() -> None:
@@ -368,7 +368,7 @@ def test_start_step_captures_text() -> None:
     col.start_scenario(_mock_scenario(name="S1"))
     col.start_step(_mock_step(name="step 1", text="some docstring"))
     assert len(col._step_queue) == 1
-    assert col._step_queue[0].text == "some docstring"
+    assert col._step_queue[0][0].text == "some docstring"
 
 
 def test_end_step_normalizes_status() -> None:
@@ -430,21 +430,41 @@ def test_scenario_all_steps_passed() -> None:
     assert col._current_feature.scenarios[0].status == "passed"
 
 
-def test_end_scenario_remaining_queued_steps_marked_skipped() -> None:
-    """end_scenario marks remaining queued steps as skipped."""
+def test_end_scenario_remaining_queued_steps_keep_behave_status() -> None:
+    """end_scenario preserves the status behave assigned to unexecuted steps.
+
+    Behave marks steps that were announced but never run (for example when a
+    hook stops the scenario) as ``skipped`` or ``undefined`` without emitting
+    a result event; the collector must not blindly force ``skipped``.
+    """
     col = Collector()
     col.start_feature(_mock_feature(name="F1"))
     col.start_scenario(_mock_scenario(name="S1"))
     col.start_step(_mock_step(name="s1"))
-    col.start_step(_mock_step(name="s2"))
-    col.start_step(_mock_step(name="s3"))
+    col.start_step(_mock_step(name="s2", status="skipped"))
+    col.start_step(_mock_step(name="s3", status="undefined"))
     col.end_step(_mock_step(name="s1", status="passed"))
-    # s2 and s3 remain queued — simulating a failed step that stops execution
     col.end_scenario()
     assert col._current_feature is not None
     scenario = col._current_feature.scenarios[0]
     assert len(scenario.steps) == 3
     assert scenario.steps[0].status == "passed"
+    assert scenario.steps[1].status == "skipped"
+    assert scenario.steps[2].status == "undefined"
+
+
+def test_end_scenario_remaining_steps_without_status_become_skipped() -> None:
+    """Queued steps whose behave status is untested/None fall back to skipped."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="s1"))
+    col.start_step(_mock_step(name="s2", status="untested"))
+    col.start_step(_mock_step(name="s3", status=None))  # type: ignore[arg-type]
+    col.end_step(_mock_step(name="s1", status="passed"))
+    col.end_scenario()
+    assert col._current_feature is not None
+    scenario = col._current_feature.scenarios[0]
     assert scenario.steps[1].status == "skipped"
     assert scenario.steps[2].status == "skipped"
 
@@ -1063,7 +1083,7 @@ def test_background_default_name() -> None:
 def test_background_skipped_steps_stay_in_background() -> None:
     """Queued background steps drained at end_scenario land in the background."""
     col = Collector()
-    bg_steps = [_mock_step(name="bg step")]
+    bg_steps = [_mock_step(name="bg step", status="skipped")]
     col.start_feature(_mock_feature(name="F1"))
     col.start_scenario(
         _mock_scenario(
@@ -1073,7 +1093,7 @@ def test_background_skipped_steps_stay_in_background() -> None:
         )
     )
     col.start_step(bg_steps[0])
-    col.start_step(_mock_step(name="scn step"))
+    col.start_step(_mock_step(name="scn step", status="skipped"))
     col.end_scenario()
     assert col._current_feature is not None
     scn = col._current_feature.scenarios[0]
@@ -1570,3 +1590,117 @@ def test_integration_conftest_fixtures_are_valid(
     assert behave_failed_step.error is not None
     assert behave_skipped_step.status == "skipped"
     assert behave_undefined_step.status == "undefined"
+
+
+# ---------------------------------------------------------------------------
+# Regression: behave-derived statuses and defensive parsing
+# ---------------------------------------------------------------------------
+
+
+def test_end_scenario_uses_behave_scenario_status() -> None:
+    """Behave's own scenario.status wins when present (e.g. empty scenario)."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    scenario = _mock_scenario(name="Empty scenario")
+    scenario.status = SimpleNamespace(name="skipped")
+    col.start_scenario(scenario)
+    col.end_scenario()
+    assert col._current_feature is not None
+    scn = col._current_feature.scenarios[0]
+    assert scn.status == "skipped"
+
+
+def test_end_scenario_behave_hook_error_maps_failed() -> None:
+    """A behave hook_error status maps to failed even without hook_failed."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    scenario = _mock_scenario(name="Hooky")
+    scenario.status = SimpleNamespace(name="hook_error")
+    col.start_scenario(scenario)
+    col.end_scenario()
+    assert col._current_feature is not None
+    scn = col._current_feature.scenarios[0]
+    assert scn.status == "failed"
+
+
+def test_end_step_non_numeric_duration_falls_back_to_zero() -> None:
+    """A non-numeric behave duration must not crash end_step."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="s1"))
+    col.end_step(_mock_step(name="s1", status="passed", duration="abc"))  # type: ignore[arg-type]
+    assert col._current_scenario is not None
+    assert col._current_scenario.steps[0].duration == 0.0
+
+
+def test_failed_step_empty_exception_message_uses_type() -> None:
+    """An exception with an empty str() still yields a meaningful message."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="s1"))
+    failing = SimpleNamespace(
+        keyword="Given",
+        name="s1",
+        status="failed",
+        location="f:5",
+        duration=0.01,
+        text=None,
+        error=ValueError(),
+        exception=None,
+        exc_traceback=None,
+        error_message=None,
+    )
+    col.end_step(failing)
+    assert col._current_scenario is not None
+    error = col._current_scenario.steps[0].error
+    assert error is not None
+    assert error.message == "ValueError"
+
+
+def test_scenario_feature_name_fallback_to_current_feature() -> None:
+    """Scenarios without a .feature reference use the collector's feature."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="MyFeature"))
+    col.start_scenario(_mock_scenario(name="S1", feature=None))
+    assert col._current_scenario is not None
+    assert col._current_scenario.feature_name == "MyFeature"
+
+
+def test_start_scenario_finalizes_dangling_scenario() -> None:
+    """A second start_scenario must finalize the open one, not drop it."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="s1"))
+    col.end_step(_mock_step(name="s1", status="passed"))
+    col.start_scenario(_mock_scenario(name="S2"))
+    assert col._current_feature is not None
+    assert len(col._current_feature.scenarios) == 1
+    assert col._current_feature.scenarios[0].name == "S1"
+
+
+def test_start_feature_finalizes_dangling_feature() -> None:
+    """A second start_feature must finalize the open feature (and scenario)."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="s1"))
+    col.end_step(_mock_step(name="s1", status="passed"))
+    col.start_feature(_mock_feature(name="F2"))
+    summary = col.finalize()
+    assert [f.name for f in summary.features] == ["F1"]
+    assert summary.features[0].scenarios[0].name == "S1"
+
+
+def test_end_feature_finalizes_open_scenario() -> None:
+    """end_feature flushes a still-open scenario into the feature."""
+    col = Collector()
+    col.start_feature(_mock_feature(name="F1"))
+    col.start_scenario(_mock_scenario(name="S1"))
+    col.start_step(_mock_step(name="s1"))
+    col.end_step(_mock_step(name="s1", status="passed"))
+    col.end_feature()
+    summary = col.finalize()
+    assert summary.features[0].scenarios[0].name == "S1"

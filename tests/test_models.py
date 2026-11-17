@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -500,3 +501,47 @@ def test_report_options_from_dict_format_fallback() -> None:
     )
     assert opts.title == "Global Title"
     assert opts.logo == "pdf.png"
+
+
+def test_derive_status_stored_failed_wins_over_scenarios() -> None:
+    """A stored failed status (e.g. feature hook failure) is never lost."""
+    feat = FeatureSummary(
+        name="F1",
+        status="failed",
+        scenarios=[_make_scenario("passed"), _make_scenario("passed")],
+    )
+    assert feat.derive_status() == "failed"
+
+
+def test_derive_status_unset_derives_from_scenarios() -> None:
+    """Default untested status still derives purely from scenarios."""
+    feat = FeatureSummary(
+        name="F1",
+        scenarios=[_make_scenario("passed"), _make_scenario("skipped")],
+    )
+    assert feat.derive_status() == "skipped"
+
+
+def test_from_dict_invalid_integer_falls_back_to_default() -> None:
+    """Non-numeric bmfr.* integer values fall back to defaults."""
+    opts = ReportOptions.from_dict({"bmfr.txt_width": "abc"})
+    assert opts.txt_width == 100
+
+
+def test_environment_capture_git_branch_fallback(monkeypatch: Any) -> None:
+    """git branch --show-current is used when %D lacks a HEAD -> ref."""
+    import subprocess as _sp
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **kwargs: Any) -> SimpleNamespace:
+        calls.append(cmd)
+        if "log" in cmd:
+            return SimpleNamespace(stdout="abc123|HEAD, tag: v1.0\n")
+        return SimpleNamespace(stdout="feature/x\n")
+
+    monkeypatch.setattr(_sp, "run", fake_run)
+    env = Environment.capture()
+    assert env.git_commit == "abc123"
+    assert env.git_branch == "feature/x"
+    assert any("--show-current" in c for c in calls)

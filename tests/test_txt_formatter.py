@@ -482,3 +482,22 @@ def test_close_stream_without_flush() -> None:
     fmt = TXTFormatter(stream_opener=opener)
     stream = SimpleNamespace(write=lambda s: None, close=lambda: None)
     fmt._close_stream(stream)  # Should not raise
+
+
+def test_close_stream_without_opener_close(tmp_path: Any) -> None:
+    """A stream opener lacking close() falls back to closing the stream."""
+    target = tmp_path / "out.txt"
+    stream = target.open("w", encoding="utf-8")
+
+    class NoCloseOpener:
+        name = str(target)
+        encoding = "utf-8"
+        stream = None
+
+        def open(self) -> Any:
+            return stream
+
+    fmt = TXTFormatter(stream_opener=NoCloseOpener())
+    fmt._write_report(_make_simple_run(), fmt._options)
+    assert stream.closed
+    assert target.read_text(encoding="utf-8")

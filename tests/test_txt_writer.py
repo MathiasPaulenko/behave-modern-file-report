@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+from typing import Any
 
 from behave_modern_file_report.models import (
     Attachment,
@@ -743,3 +744,39 @@ def test_multiple_attachments_all_listed() -> None:
     output = _write_report(run)
     assert "a.txt" in output
     assert "b.png" in output
+
+
+def test_write_attachment_invalid_base64_shows_label(tmp_path: Any) -> None:
+    """Garbage base64 renders the explicit invalid-base64 label, not 0 bytes."""
+    att = Attachment(name="bad.bin", mime_type="application/octet-stream", data_base64="!!!")
+    scenario = _make_scenario(steps=[_make_step(attachments=[att])])
+    run = _make_run(features=[_make_feature(scenarios=[scenario])])
+    out = tmp_path / "report.txt"
+    writer = TXTWriter(ReportOptions())
+    with out.open("w", encoding="utf-8") as stream:
+        writer.write(run, stream)
+    content = out.read_text(encoding="utf-8")
+    assert "invalid base64" in content
+
+
+def test_write_step_untested_icon_unicode(tmp_path: Any) -> None:
+    """Untested steps get the dedicated icon, not the undefined '?'."""
+    scenario = _make_scenario(steps=[_make_step(status="untested")])
+    run = _make_run(features=[_make_feature(scenarios=[scenario])])
+    out = tmp_path / "report.txt"
+    writer = TXTWriter(ReportOptions())
+    with out.open("w", encoding="utf-8") as stream:
+        writer.write(run, stream)
+    content = out.read_text(encoding="utf-8")
+    assert "·" in content
+
+
+def test_write_step_untested_icon_ascii(tmp_path: Any) -> None:
+    scenario = _make_scenario(steps=[_make_step(status="untested")])
+    run = _make_run(features=[_make_feature(scenarios=[scenario])])
+    out = tmp_path / "report.txt"
+    writer = TXTWriter(ReportOptions(txt_ascii=True))
+    with out.open("w", encoding="utf-8") as stream:
+        writer.write(run, stream)
+    content = out.read_text(encoding="utf-8")
+    assert "[UNTESTED]" in content

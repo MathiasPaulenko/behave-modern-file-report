@@ -11,6 +11,7 @@ The formatter reads Behave's ``config.userdata`` and resolves options using
 from __future__ import annotations
 
 import base64
+import contextlib
 import mimetypes
 from pathlib import Path
 from typing import Any
@@ -24,7 +25,7 @@ from behave_modern_file_report.models import (
     ReportOptions,
     RunSummary,
 )
-from behave_modern_file_report.utils import STATUS_FAILED
+from behave_modern_file_report.utils import STATUS_FAILED, clean_xml_text
 
 
 def _filter_failed_scenarios(run_summary: RunSummary) -> None:
@@ -39,12 +40,16 @@ def _filter_failed_scenarios(run_summary: RunSummary) -> None:
             scenario for scenario in feature.scenarios if scenario.status == STATUS_FAILED
         ]
         if not failed_scenarios:
-            continue
+            # A feature can be failed by a hook without any failed scenario;
+            # keep it (with full context) rather than dropping the failure.
+            if feature.status != STATUS_FAILED:
+                continue
+            failed_scenarios = list(feature.scenarios)
         filtered_features.append(
             FeatureSummary(
                 name=feature.name,
                 description=feature.description,
-                status=feature.derive_status(),
+                status=feature.status,
                 duration=feature.duration,
                 tags=feature.tags,
                 location=feature.location,
@@ -94,7 +99,8 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         if config is not None:
             raw_userdata = getattr(config, "userdata", None)
             if raw_userdata is not None:
-                userdata = dict(raw_userdata)
+                with contextlib.suppress(TypeError, ValueError):
+                    userdata = dict(raw_userdata)
 
         self._options = ReportOptions.from_dict(userdata, self._format_key)
         self._collector = Collector(
@@ -103,6 +109,7 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         self._closed = False
         self._attachment_buffer: list[Attachment] = []
         self._log_buffer: list[str] = []
+        self._embed_count = 0
 
     # ------------------------------------------------------------------
     # Behave formatter protocol
@@ -110,6 +117,37 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
 
     def uri(self, uri: str) -> None:
         """Handle a feature URI notification (no-op for file reports)."""
+
+    def embedding(self, mime_type: str, data: Any) -> None:
+        """Support Behave's ``context.attach(mime_type, data)`` API.
+
+        Behave forwards attachments to every formatter defining
+        ``embedding(mime_type, data)``. The data is raw bytes; it is
+        buffered like any other attachment and flushed to the step that
+        is running when the call happens.
+
+        Args:
+            mime_type: MIME type of the data (e.g. ``"image/png"``).
+            data: Raw attachment data (``bytes``, ``str`` or bytes-like).
+        """
+        mime = mime_type if isinstance(mime_type, str) and mime_type else "application/octet-stream"
+        if isinstance(data, str):
+            raw = data.encode("utf-8")
+        else:
+            try:
+                raw = bytes(data)
+            except (TypeError, ValueError):
+                raw = str(data).encode("utf-8")
+        ext = mimetypes.guess_extension(mime.split(";", 1)[0].strip()) or ".bin"
+        self._embed_count += 1
+        attachment = Attachment(
+            name=f"embed-{self._embed_count}{ext}",
+            mime_type=mime,
+            data_base64=base64.b64encode(raw).decode("ascii"),
+        )
+        if mime.startswith("text/") or mime in ("application/json", "application/xml"):
+            attachment.text = clean_xml_text(raw.decode("utf-8", errors="replace"))
+        self.attach(attachment)
 
     def feature(self, feature: Any) -> None:
         """Begin tracking a feature.
@@ -181,8 +219,8 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
                 current_step.attachments.append(attachment)
             for message in self._log_buffer:
                 current_step.logs.append(message)
-        self._attachment_buffer.clear()
-        self._log_buffer.clear()
+            self._attachment_buffer.clear()
+            self._log_buffer.clear()
 
         self._collector.end_step(step)
 
@@ -207,18 +245,20 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         """Finalize the run and write the report exactly once."""
         if self._closed:
             return
-        self._closed = True
         # Finalize anything still open (e.g. an aborted run) and flush
         # attachments/logs buffered after the last step result.
         self.eof()
         self._resolve_logo()
         run_summary = self._collector.finalize()
-        run_summary.title = self._options.title
+        run_summary.title = clean_xml_text(self._options.title)
         if self._options.project_name:
-            run_summary.project_name = self._options.project_name
+            run_summary.project_name = clean_xml_text(self._options.project_name)
         if self._options.only_failed:
             _filter_failed_scenarios(run_summary)
         self._write_report(run_summary, self._options)
+        # Only mark closed after a successful write so a failed report can be
+        # retried instead of being permanently swallowed.
+        self._closed = True
 
     # ------------------------------------------------------------------
     # Branding helpers
@@ -227,14 +267,25 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
     def _resolve_path(self) -> str:
         """Resolve the output path from the stream opener or default filename.
 
+        Binary writers (PDF/DOCX) never open the Behave stream, so the
+        stream opener's own ``ensure_dir_exists`` never runs. The parent
+        directory is created here instead.
+
         Returns:
             The stream opener's ``name`` attribute, or ``self._default_filename``.
         """
+        path = str(getattr(self, "_default_filename", ""))
         if self._stream_opener is not None:
             name = getattr(self._stream_opener, "name", None)
             if name is not None:
-                return str(name)
-        return str(getattr(self, "_default_filename", ""))
+                path = str(name)
+        try:
+            parent = Path(path).parent
+            if str(parent) not in ("", "."):
+                parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
+        return path
 
     def _resolve_logo(self) -> None:
         """Resolve the logo file path to a base64 data URI.
@@ -249,7 +300,7 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
             return
         if not self._options.logo:
             return
-        logo_path = Path(self._options.logo)
+        logo_path = Path(self._options.logo).expanduser()
         if not logo_path.is_file():
             return
         mime, _ = mimetypes.guess_type(str(logo_path))
@@ -257,9 +308,9 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
             mime = "image/png"
         elif not mime.startswith("image/"):
             return
-        if logo_path.stat().st_size > _MAX_LOGO_SIZE_KB * 1024:
-            return
         try:
+            if logo_path.stat().st_size > _MAX_LOGO_SIZE_KB * 1024:
+                return
             data = logo_path.read_bytes()
         except OSError:
             return
@@ -284,7 +335,9 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         Args:
             message: The log message text.
         """
-        self._log_buffer.append(message)
+        self._log_buffer.append(
+            clean_xml_text(message if isinstance(message, str) else str(message))
+        )
 
     def _flush_orphan_buffers(self) -> None:
         """Flush attachment/log buffers to the last step of the current scenario.
@@ -292,15 +345,23 @@ class BaseFileFormatter(Formatter):  # type: ignore[misc]
         Attachments and logs emitted outside of a step result (for example in
         ``after_scenario`` hooks) are buffered without a matching queued step.
         Attach them to the most recent step so they are not silently dropped.
+
+        When there is no step to attach to yet (for example attachments
+        emitted from ``before_scenario`` of a step-less scenario), the
+        buffers are kept so the next step result or boundary picks them up
+        instead of being silently discarded.
         """
         if not self._attachment_buffer and not self._log_buffer:
             return
         scenario = self._collector._current_scenario
-        if scenario is None or not scenario.steps:
-            self._attachment_buffer.clear()
-            self._log_buffer.clear()
+        if scenario is None:
             return
-        target_step = scenario.steps[-1]
+        candidates = scenario.steps
+        if not candidates and scenario.background is not None:
+            candidates = scenario.background.steps
+        if not candidates:
+            return
+        target_step = candidates[-1]
         target_step.attachments.extend(self._attachment_buffer)
         target_step.logs.extend(self._log_buffer)
         self._attachment_buffer.clear()
