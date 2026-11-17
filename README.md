@@ -262,6 +262,10 @@ attach_json(context, {"key": "value"}, "response.json")
 log(context, "Something happened")
 ```
 
+Behave's built-in `context.attach(mime_type, data)` API is also supported:
+embedded data is buffered like any other attachment and lands on the step
+that is running when the call happens.
+
 ---
 
 ## Custom templates
